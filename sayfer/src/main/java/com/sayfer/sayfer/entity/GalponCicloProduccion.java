@@ -11,12 +11,13 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Table(name = "galpon_ciclo_produccion")
 public class GalponCicloProduccion {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_galpon_ciclo_produccion")
     private Integer id_galpon_ciclo_produccion;
 
-    @Column(name = "fecha_inicio")
+    @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fecha_inicio;
 
     @Column(name = "fecha_fin")

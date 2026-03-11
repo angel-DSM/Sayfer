@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -23,7 +24,7 @@ public class AdmiAlimento {
     private Integer admi_alimento;
 
     @Column(name = "cantidad_utilizada", nullable = false, length = 30)
-    private double cantidad_utilizada;
+    private int cantidad_utilizada;
 
     @Column(name = "fecha_alimentacion", nullable = false)
     private LocalDate fecha_alimentacion;

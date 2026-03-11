@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -25,11 +26,11 @@ public class IngMedicamento {
     @Column(name = "fecha_ingreso", nullable = false)
     private LocalDate fecha_ingreso;
 
-    @Column(name = "valor_unitario", precision = 30, scale = 4, nullable = false)
-    private double valor_unitario;
+    @Column(name = "valor_unitario", precision = 30, scale = 2, nullable = false)
+    private BigDecimal valor_unitario;
 
-    @Column(name = "valor_total", precision = 30, scale = 4, nullable = false)
-    private  double valor_total;
+    @Column(name = "valor_total", precision = 30, scale = 2, nullable = false)
+    private  BigDecimal valor_total;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_medicamento", nullable = false)

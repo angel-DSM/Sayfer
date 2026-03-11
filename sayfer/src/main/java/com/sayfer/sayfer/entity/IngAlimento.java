@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -19,23 +20,23 @@ public class IngAlimento {
     @Column(name = "id_IngAlimento")
     private Integer id_IngAlimento;
 
-    @Column(name = "catidad", precision = 10,scale = 3, nullable = false)
-    private double catidad;
+    @Column(name = "catidad", precision = 10,scale = 2, nullable = false)
+    private BigDecimal catidad;
 
     @Column(name = "fecha_ingreso", nullable = false)
     private LocalDate fecha_ingreso;
 
-    @Column(name = "valor_unitario", precision = 10, scale = 3, nullable = false)
-    private double valor_unitario;
+    @Column(name = "valor_unitario", precision = 10, scale = 2, nullable = false)
+    private BigDecimal valor_unitario;
 
-    @Column(name = "valor_total", precision = 10, scale = 3, nullable = false)
-    private double valor_total;
+    @Column(name = "valor_total", precision = 10, scale = 2, nullable = false)
+    private BigDecimal valor_total;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_unidad")
     private UnidadMedida id_unidad;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_tipo_alimento")
-    private TipoAlimento id_tipo_alimento;
+    @JoinColumn(name = "id_tipo_medicamento")
+    private TipoAlimento id_tipo_medicamento;
 }

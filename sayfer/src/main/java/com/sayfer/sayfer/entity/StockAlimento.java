@@ -21,6 +21,11 @@ public class StockAlimento {
     private long cantidad;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tipo_alimento")
+    private TipoAlimento id_tipo_alimento;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_unidad")
     private UnidadMedida id_unidad;
+
 }

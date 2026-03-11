@@ -25,10 +25,4 @@ public class CicloProduccion {
     @Column(name = "nombre_ciclo", length = 20, nullable = false)
     private String nombreCiclo;
 
-    @Column(name = "fecha_inicio", nullable = false)
-    private LocalDate fechaInicio;
-
-    @Column(name = "fecha_fin")
-    private LocalDate fechaFin;
-
 }
