@@ -21,7 +21,7 @@ public class AdmiAlimento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_admi_alimento")
-    private Integer admi_alimento;
+    private Integer id_admi_alimento;
 
     @Column(name = "cantidad_utilizada", nullable = false, length = 30)
     private int cantidad_utilizada;
