@@ -1,5 +1,6 @@
 package com.sayfer.sayfer.entity;
 
+import com.sayfer.sayfer.dto.AdmiAlimentoDTO;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,4 +49,8 @@ public class AdmiAlimento {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_unidad", nullable = false)
     private UnidadMedida id_unidad;
+
+    public static void save(AdmiAlimentoDTO obj) {
+
+    }
 }

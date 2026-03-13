@@ -13,12 +13,12 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Table(name = "admin_medicamento")
-public class AdminMedicamento {
+@Table(name = "admi_medicamento")
+public class AdmiMedicamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_admin_medicamento")
+    @Column(name = "id_admi_medicamento")
     private Integer id_admin_medicamento;
 
     @Column(name = "cantidad_utilizada", precision =20, nullable = false )

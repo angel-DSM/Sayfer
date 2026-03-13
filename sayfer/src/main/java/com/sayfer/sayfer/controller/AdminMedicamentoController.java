@@ -5,23 +5,23 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import com.sayfer.sayfer.entity.AdminMedicamento;
-import com.sayfer.sayfer.repository.AdminMedicamentoRepository;
+import com.sayfer.sayfer.entity.AdmiMedicamento;
+import com.sayfer.sayfer.repository.AdmiMedicamentoRepository;
 
 @RestController
 @RequestMapping("/admi-medicamento")
 public class AdminMedicamentoController {
 
     @Autowired
-    private AdminMedicamentoRepository repository;
+    private AdmiMedicamentoRepository repository;
 
     @GetMapping
-    public List<AdminMedicamento> listar() {
+    public List<AdmiMedicamento> listar() {
         return repository.findAll();
     }
 
     @PostMapping
-    public AdminMedicamento guardar(@RequestBody AdminMedicamento adminMedicamento) {
+    public AdmiMedicamento guardar(@RequestBody AdmiMedicamento adminMedicamento) {
         return repository.save(adminMedicamento);
     }
 }

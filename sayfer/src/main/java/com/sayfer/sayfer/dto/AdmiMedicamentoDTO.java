@@ -1,7 +1,6 @@
 package com.sayfer.sayfer.dto;
 
 import com.sayfer.sayfer.entity.*;
-import jakarta.persistence.FetchType;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -11,9 +10,9 @@ import java.time.LocalDate;
 @Builder
 @Setter
 @Getter
-public class AdminMedicamentoDTO {
+public class AdmiMedicamentoDTO {
 
-    private Integer id_admin_medicamento;
+    private Integer id_admi_medicamento;
     private double cantidad_utilizada;
     private LocalDate fecha_medicacion;
     private TipoMedicamento tipo_medicamento;

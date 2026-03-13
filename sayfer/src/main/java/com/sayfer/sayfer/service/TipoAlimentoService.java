@@ -1,6 +1,6 @@
 package com.sayfer.sayfer.service;
 
-import com.sayfer.sayfer.dto.TipoAlimentoDTO;
+import com.sayfer.sayfer.entity.TipoAlimento;
 
-public interface TipoAlimentoService extends PageableService<TipoAlimentoDTO, Integer>{
+public interface TipoAlimentoService extends CrudService<TipoAlimento, Integer>{
 }
