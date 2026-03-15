@@ -2,7 +2,6 @@ package com.sayfer.sayfer.dto;
 
 import lombok.*;
 
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

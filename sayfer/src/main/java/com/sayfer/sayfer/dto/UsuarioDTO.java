@@ -1,5 +1,6 @@
 package com.sayfer.sayfer.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -16,5 +17,6 @@ public class UsuarioDTO {
     private LocalDate fecha_registro;
     private String rol;
     private String correo;
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 }

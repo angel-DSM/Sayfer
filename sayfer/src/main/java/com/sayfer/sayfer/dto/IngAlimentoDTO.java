@@ -7,8 +7,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Setter
-@Getter
+@Data
 public class IngAlimentoDTO {
 
     private Integer id_IngAlimento;

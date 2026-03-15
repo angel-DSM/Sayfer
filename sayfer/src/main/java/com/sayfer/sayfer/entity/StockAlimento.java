@@ -3,12 +3,14 @@ package com.sayfer.sayfer.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Data
 @Table(name = "stock_alimento")
 public class StockAlimento {
 

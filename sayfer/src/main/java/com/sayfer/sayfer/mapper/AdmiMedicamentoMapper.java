@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component;
 public class AdmiMedicamentoMapper extends GenericMapper<AdmiMedicamento, AdmiMedicamentoDTO>{
     @Override
     public AdmiMedicamentoDTO toDTO(AdmiMedicamento entity) {
-        if(entity == null) return null;
-
+        if(entity == null) {
+            return null;
+        }
         return AdmiMedicamentoDTO.builder()
                 .id_admi_medicamento(entity.getId_admin_medicamento())
                 .cantidad_utilizada(entity.getCantidad_utilizada())
