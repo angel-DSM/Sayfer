@@ -27,7 +27,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
         if (search == null || search.trim().isEmpty()) {
             StockMedicamentos = repository.findAll(pageable);
         } else {
-            StockMedicamentos = repository.findBycantidadContainingIgnoreCase(pageable, search);
+            StockMedicamentos = repository.findBycantidad_actualContainingIgnoreCase(pageable, search);
         }
         return new PageImpl<>(
                 StockMedicamentos.getContent().stream()
@@ -61,7 +61,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
                         "No se encontró ingreso de alimento con id: " + id));
         StockMedicamento entidad = mapper.toEntity(obj);
-        entidad.setId_stock_alimento(id);
+        entidad.setId_stock_medicamento(id);
         StockMedicamento actualizado = repository.save(entidad);
         return mapper.toDTO(actualizado);
     }

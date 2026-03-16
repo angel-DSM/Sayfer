@@ -1,30 +1,32 @@
 package com.sayfer.sayfer.mapper;
 
-import com.sayfer.sayfer.dto.StockAlimentoDTO;
-import com.sayfer.sayfer.entity.StockAlimento;
+import com.sayfer.sayfer.dto.StockMedicamentoDTO;
+import com.sayfer.sayfer.entity.StockMedicamento;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StockMedicamentoMapper extends GenericMapper<StockAlimento, StockAlimentoDTO>{
+public class StockMedicamentoMapper extends GenericMapper<StockMedicamento, StockMedicamentoDTO>{
     @Override
-    public StockAlimentoDTO toDTO(StockAlimento entity) {
+    public StockMedicamentoDTO toDTO(StockMedicamento entity) {
         if (entity == null){
             return null;
         }
-        return StockAlimentoDTO.builder()
-                .id_stock_alimento(entity.getId_stock_alimento())
-                .cantidad(entity.getCantidad())
+        return StockMedicamentoDTO.builder()
+                .id_stock_medicamento(entity.getId_stock_medicamento())
+                .cantidad_actual(entity.getCantidad_actual())
                 .build();
     }
 
     @Override
-    public StockAlimento toEntity(StockAlimentoDTO dto) {
-        if (dto == null){
+    public StockMedicamento toEntity(StockMedicamentoDTO dto) {
+        if (dto==null){
             return null;
         }
-        return StockAlimento.builder()
-                .id_stock_alimento(dto.getId_stock_alimento())
-                .cantidad(dto.getCantidad())
+        return StockMedicamento.builder()
+                .id_stock_medicamento(dto.getId_stock_medicamento())
+                .cantidad_actual(dto.getCantidad_actual())
                 .build();
     }
+
+
 }

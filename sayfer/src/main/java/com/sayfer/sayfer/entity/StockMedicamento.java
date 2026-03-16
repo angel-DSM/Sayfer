@@ -2,6 +2,7 @@ package com.sayfer.sayfer.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Data
 @Table(name = "stock_medicamento")
 public class StockMedicamento {
