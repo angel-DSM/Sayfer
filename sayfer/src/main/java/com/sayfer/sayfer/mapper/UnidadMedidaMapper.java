@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.UnidadMedidaDTO;
 import com.sayfer.sayfer.entity.UnidadMedida;
+import org.springframework.stereotype.Component;
 
+@Component
 public class UnidadMedidaMapper extends GenericMapper<UnidadMedida, UnidadMedidaDTO>{
     @Override
     public UnidadMedidaDTO toDTO(UnidadMedida entity) {

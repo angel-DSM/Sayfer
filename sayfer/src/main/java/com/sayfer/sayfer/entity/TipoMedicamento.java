@@ -16,12 +16,11 @@ public class TipoMedicamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_tipo_medicamento")
-    private String id_tipo_medicamento;
+    private Integer id_tipo_medicamento;
 
     @Column(name = "nombre", length = 30, nullable = false)
     private String nombre;
 
-    @Column(name = "descripcion", length = 200, nullable = false)
-    private String descripcion;
+    @Column(name = "descripcion_medi", length = 200, nullable = false)
+    private String descripcion_medi;
 }

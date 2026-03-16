@@ -14,7 +14,7 @@ import java.time.LocalDate;
 public class AdmiAlimentoDTO {
 
     private Integer id_admi_alimento;
-    private int cantidad_utilizada;
+    private Long cantidad_utilizada;
     private LocalDate fecha_alimentacion;
     private TipoAlimento id_tipo_alimento;
     private Galpon id_galpon;

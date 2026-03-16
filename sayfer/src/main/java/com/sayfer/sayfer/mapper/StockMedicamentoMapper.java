@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.StockAlimentoDTO;
 import com.sayfer.sayfer.entity.StockAlimento;
+import org.springframework.stereotype.Component;
 
+@Component
 public class StockMedicamentoMapper extends GenericMapper<StockAlimento, StockAlimentoDTO>{
     @Override
     public StockAlimentoDTO toDTO(StockAlimento entity) {

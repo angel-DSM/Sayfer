@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Setter
 @Getter
 public class UsuarioDTO {
-    private Integer cedula;
+    private Long cedula;
     private String nombre;
     private String apellido;
     private LocalDate fecha_registro;

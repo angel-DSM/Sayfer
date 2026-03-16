@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.TipoAlimentoDTO;
 import com.sayfer.sayfer.entity.TipoAlimento;
+import org.springframework.stereotype.Component;
 
+@Component
 public class TipoAlimentoMapper extends GenericMapper<TipoAlimento, TipoAlimentoDTO>{
 
     @Override

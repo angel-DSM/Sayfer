@@ -2,5 +2,5 @@ package com.sayfer.sayfer.service;
 
 import com.sayfer.sayfer.dto.AdmiMedicamentoDTO;
 
-public interface AdminMedicamentoService extends PageableService<AdmiMedicamentoDTO,Integer> {
+public interface AdminMedicamentoService extends CrudService<AdmiMedicamentoDTO,Integer> {
 }

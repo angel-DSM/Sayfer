@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.IngAlimentoDTO;
 import com.sayfer.sayfer.entity.IngAlimento;
+import org.springframework.stereotype.Component;
 
+@Component
 public class IngAlimentoMapper extends GenericMapper<IngAlimento, IngAlimentoDTO>{
     @Override
     public IngAlimentoDTO toDTO(IngAlimento entity) {
@@ -11,7 +13,7 @@ public class IngAlimentoMapper extends GenericMapper<IngAlimento, IngAlimentoDTO
         }
         return IngAlimentoDTO.builder()
                 .id_IngAlimento(entity.getId_IngAlimento())
-                .catidad(entity.getCatidad())
+                .cantidad(entity.getCantidad())
                 .fecha_ingreso(entity.getFecha_ingreso())
                 .valor_unitario(entity.getValor_unitario())
                 .valor_total(entity.getValor_total())
@@ -25,7 +27,7 @@ public class IngAlimentoMapper extends GenericMapper<IngAlimento, IngAlimentoDTO
         }
         return IngAlimento.builder()
                 .id_IngAlimento(dto.getId_IngAlimento())
-                .catidad(dto.getCatidad())
+                .cantidad(dto.getCantidad())
                 .fecha_ingreso(dto.getFecha_ingreso())
                 .valor_unitario(dto.getValor_unitario())
                 .valor_total(dto.getValor_total())

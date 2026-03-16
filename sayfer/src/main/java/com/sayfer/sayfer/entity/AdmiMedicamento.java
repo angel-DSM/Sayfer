@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -18,11 +19,10 @@ public class AdmiMedicamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_admi_medicamento")
     private Integer id_admin_medicamento;
 
-    @Column(name = "cantidad_utilizada", precision =20, nullable = false )
-    private double cantidad_utilizada;
+    @Column(name = "cantidad_utilizada_medi", precision =20, nullable = false )
+    private BigDecimal cantidad_utilizada_medi;
 
     @Column(name = "fecha_medicacion", nullable = false)
     private LocalDate fecha_medicacion;

@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.MortalidadDTO;
 import com.sayfer.sayfer.entity.Mortalidad;
+import org.springframework.stereotype.Component;
 
+@Component
 public class MortalidadMapper extends GenericMapper<Mortalidad, MortalidadDTO>{
 
     @Override

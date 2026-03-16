@@ -13,16 +13,10 @@ import java.time.LocalDate;
 public class IngMedicamentoDTO {
 
     private Integer ing_medicamento;
-
-    private double cantidad;
-
+    private Double cantidad;
     private LocalDate fecha_ingreso;
-
     private BigDecimal valor_unitario;
-
     private  BigDecimal valor_total;
-
     private TipoMedicamentoDTO id_tipo_medicamento;
-
     private UnidadMedidaDTO id_unidad;
 }

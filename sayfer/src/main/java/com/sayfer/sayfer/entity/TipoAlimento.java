@@ -23,7 +23,7 @@ public class TipoAlimento {
     @Column(name = "nombre_alimento", length = 30, nullable = false)
     private String nombre_alimento;
 
-    @Column(name = "descripcion_alimento", length = 200, nullable = false)
+    @Column(name = "descripcion_alimento", length = 200)
     private String descripcion_alimento;
 
 }

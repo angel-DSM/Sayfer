@@ -25,7 +25,7 @@ public class AdmiAlimento {
     private Integer id_admi_alimento;
 
     @Column(name = "cantidad_utilizada", nullable = false, length = 30)
-    private int cantidad_utilizada;
+    private Long cantidad_utilizada;
 
     @Column(name = "fecha_alimentacion", nullable = false)
     private LocalDate fecha_alimentacion;
@@ -50,7 +50,4 @@ public class AdmiAlimento {
     @JoinColumn(name = "id_unidad", nullable = false)
     private UnidadMedida id_unidad;
 
-    public static void save(AdmiAlimentoDTO obj) {
-
-    }
 }

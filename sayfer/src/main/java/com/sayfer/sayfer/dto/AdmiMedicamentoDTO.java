@@ -3,6 +3,7 @@ package com.sayfer.sayfer.dto;
 import com.sayfer.sayfer.entity.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @NoArgsConstructor
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 public class AdmiMedicamentoDTO {
 
     private Integer id_admi_medicamento;
-    private double cantidad_utilizada;
+    private BigDecimal cantidad_utilizada_medi;
     private LocalDate fecha_medicacion;
     private TipoMedicamento tipo_medicamento;
     private Usuario id_usuario;

@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.CicloProduccionDTO;
 import com.sayfer.sayfer.entity.CicloProduccion;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CicloProduccionMapper extends GenericMapper<CicloProduccion, CicloProduccionDTO> {
     @Override
     public CicloProduccionDTO toDTO(CicloProduccion entity) {

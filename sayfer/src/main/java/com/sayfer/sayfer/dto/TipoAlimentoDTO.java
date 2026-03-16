@@ -1,7 +1,5 @@
 package com.sayfer.sayfer.dto;
 
-
-import jakarta.persistence.*;
 import lombok.*;
 
 

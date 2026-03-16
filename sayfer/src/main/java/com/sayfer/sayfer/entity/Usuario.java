@@ -17,7 +17,7 @@ public class Usuario {
 //preferi usar la cedula como llave primaria ya que no se puede reprtir
     @Id
     @Column(name = "cedula",unique = true)
-    private Integer cedula;
+    private Long cedula;
 
     @Column(name = "nombre", length = 30, nullable = false)
     private String nombre;

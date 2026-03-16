@@ -13,7 +13,7 @@ public class AdmiMedicamentoMapper extends GenericMapper<AdmiMedicamento, AdmiMe
         }
         return AdmiMedicamentoDTO.builder()
                 .id_admi_medicamento(entity.getId_admin_medicamento())
-                .cantidad_utilizada(entity.getCantidad_utilizada())
+                .cantidad_utilizada_medi(entity.getCantidad_utilizada_medi())
                 .fecha_medicacion(entity.getFecha_medicacion())
                 .tipo_medicamento(entity.getTipo_medicamento())
                 .build();
@@ -26,7 +26,7 @@ public class AdmiMedicamentoMapper extends GenericMapper<AdmiMedicamento, AdmiMe
         }
         return AdmiMedicamento.builder()
                 .id_admin_medicamento(dto.getId_admi_medicamento())
-                .cantidad_utilizada(dto.getCantidad_utilizada())
+                .cantidad_utilizada_medi(dto.getCantidad_utilizada_medi())
                 .fecha_medicacion(dto.getFecha_medicacion())
                 .tipo_medicamento(dto.getTipo_medicamento())
                 .build();

@@ -12,7 +12,7 @@ import lombok.*;
 public class StockAlimentoDTO {
 
     private Integer id_stock_alimento;
-    private long cantidad;
+    private Long cantidad;
     private TipoAlimentoDTO id_tipo_alimento;
     private UnidadMedidaDTO id_unidad;
 

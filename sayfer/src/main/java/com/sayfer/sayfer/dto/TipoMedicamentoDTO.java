@@ -10,7 +10,7 @@ import lombok.*;
 @Getter
 
 public class TipoMedicamentoDTO {
-    private String id_tipo_medicamento;
+    private Integer id_tipo_medicamento;
     private String nombre;
-    private String descripcion;
+    private String descripcion_medi;
 }

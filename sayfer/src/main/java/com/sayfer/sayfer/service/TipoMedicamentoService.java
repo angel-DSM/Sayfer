@@ -1,6 +1,7 @@
 package com.sayfer.sayfer.service;
 
-import com.sayfer.sayfer.entity.TipoMedicamento;
+import com.sayfer.sayfer.dto.TipoMedicamentoDTO;
 
-public interface TipoMedicamentoService extends CrudService<TipoMedicamento, Integer>{
+public interface TipoMedicamentoService extends CrudService<TipoMedicamentoDTO, Integer>{
+
 }

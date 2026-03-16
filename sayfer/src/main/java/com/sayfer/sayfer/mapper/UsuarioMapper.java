@@ -2,7 +2,9 @@ package com.sayfer.sayfer.mapper;
 
 import com.sayfer.sayfer.dto.UsuarioDTO;
 import com.sayfer.sayfer.entity.Usuario;
+import org.springframework.stereotype.Component;
 
+@Component
 public class UsuarioMapper extends GenericMapper<Usuario, UsuarioDTO>{
     @Override
     public UsuarioDTO toDTO(Usuario entity) {
@@ -16,7 +18,6 @@ public class UsuarioMapper extends GenericMapper<Usuario, UsuarioDTO>{
                 .fecha_registro(entity.getFecha_registro())
                 .rol(entity.getRol())
                 .correo(entity.getCorreo())
-                .password(entity.getPassword())
                 .build();
     }
 
