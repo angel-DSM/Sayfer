@@ -21,7 +21,7 @@ public class StockMedicamento {
     private Integer id_stock_medicamento;
 
     @Column(name = "cantidad_actual", precision = 10, scale = 2, nullable = false)
-    private BigDecimal cantidad_actual;
+    private BigDecimal cantidadActual;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_medicamento", nullable = false)

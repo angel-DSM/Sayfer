@@ -13,7 +13,7 @@ public class StockMedicamentoMapper extends GenericMapper<StockMedicamento, Stoc
         }
         return StockMedicamentoDTO.builder()
                 .id_stock_medicamento(entity.getId_stock_medicamento())
-                .cantidad_actual(entity.getCantidad_actual())
+                .cantidadActual(entity.getCantidadActual())
                 .build();
     }
 
@@ -24,7 +24,7 @@ public class StockMedicamentoMapper extends GenericMapper<StockMedicamento, Stoc
         }
         return StockMedicamento.builder()
                 .id_stock_medicamento(dto.getId_stock_medicamento())
-                .cantidad_actual(dto.getCantidad_actual())
+                .cantidadActual(dto.getCantidadActual())
                 .build();
     }
 

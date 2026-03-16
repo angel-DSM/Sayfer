@@ -26,7 +26,7 @@ public class Mortalidad {
     private LocalDate fecha_de_muerte;
 
     @Column(name = "cantidad_muertos", nullable = false, length = 20)
-    private String cantidad_muertos;
+    private String muertos;
 
     @Column(name = "causa", nullable = false, length = 20)
     private String causa;

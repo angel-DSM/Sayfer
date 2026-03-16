@@ -58,13 +58,13 @@ public class TipoMedicamentoServiceImplementation implements TipoMedicamentoServ
             TipoMedicamento update = repository.save(entidad);
             return mapper.toDTO(update);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id);
+        throw new NoDataFoundException("No se puede actualizar: No existe el medicamento con ID" + id);
     }
 
     @Override
     public void delete(Integer id) {
         TipoMedicamento entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id));
+                .orElseThrow(()-> new NoDataFoundException("No se puede actualizar el medicamento: No existe el medicamento con ID" + id));
         repository.delete(entidad);
     }
 }

@@ -44,7 +44,7 @@ public class StockAlimentoServiceImplementation implements StockAlimentoService 
     public StockAlimentoDTO findById(Integer id) {
         StockAlimento entidad = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de alimento con id: " + id));
         return mapper.toDTO(entidad);
     }
 
@@ -61,7 +61,7 @@ public class StockAlimentoServiceImplementation implements StockAlimentoService 
         StockAlimentoValidator.validate(obj);
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de alimento con id: " + id));
         StockAlimento entidad = mapper.toEntity(obj);
         entidad.setId_stock_alimento(id);
         StockAlimento actualizado = repository.save(entidad);
@@ -72,7 +72,7 @@ public class StockAlimentoServiceImplementation implements StockAlimentoService 
     public void delete(Integer id) {
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de alimento con id: " + id));
         repository.deleteById(id);
     }
 }

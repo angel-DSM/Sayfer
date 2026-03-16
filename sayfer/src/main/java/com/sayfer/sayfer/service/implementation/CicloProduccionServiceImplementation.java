@@ -36,7 +36,7 @@ public class CicloProduccionServiceImplementation implements CicloProduccionServ
     @Override
     public CicloProduccionDTO findById(Integer id) {
         CicloProduccion entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("identificador " + id + " no encontrado"));
+                .orElseThrow(()-> new NoDataFoundException("identificador del ciclo " + id + " no encontrado"));
         return mapper.toDTO(entidad);
     }
 

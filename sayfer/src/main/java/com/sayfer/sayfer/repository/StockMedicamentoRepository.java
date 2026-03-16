@@ -6,5 +6,5 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface StockMedicamentoRepository extends JpaRepository<StockMedicamento, Integer> {
-    Page<StockMedicamento> findBycantidad_actualContainingIgnoreCase(Pageable pageable, String search);
+    Page<StockMedicamento> findBycantidadActualContainingIgnoreCase(Pageable pageable, String search);
 }

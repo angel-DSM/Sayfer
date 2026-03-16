@@ -16,7 +16,7 @@ public class MortalidadDTO {
 
     private Integer id_Mortalidad;
     private LocalDate fecha_de_muerte;
-    private String cantidad_muertos;
+    private String muertos;
     private String causa;
     private CicloProduccion id_ciclo;
     private Galpon id_galpon;

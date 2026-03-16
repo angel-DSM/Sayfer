@@ -36,7 +36,7 @@ public class UnidadMedidaServiceImplementation implements UnidadMedidaService {
     @Transactional(readOnly = true)
     public UnidadMedidaDTO findById(Integer id) {
         UnidadMedida entidad = repository.findById(id)
-                .orElseThrow(() -> new NoDataFoundException("No se encontro el medicamento por el id "+ id));
+                .orElseThrow(() -> new NoDataFoundException("No se encontro la unidad de medida por el id "+ id));
         return mapper.toDTO(entidad);
     }
     //el unico validador es si el valor de cantidad es mayor a 0
@@ -57,13 +57,13 @@ public class UnidadMedidaServiceImplementation implements UnidadMedidaService {
             UnidadMedida update = repository.save(entidad);
             return mapper.toDTO(update);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id);
+        throw new NoDataFoundException("No se encontro la unidad de medida por el id "+ id);
     }
 
     @Override
     public void delete(Integer id) {
         UnidadMedida entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id));
+                .orElseThrow(()-> new NoDataFoundException("No se encontro la unidad de medida por el id "+ id));
         repository.delete(entidad);
     }
 }

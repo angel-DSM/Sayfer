@@ -8,19 +8,19 @@ public class UsuarioValidator {
     public static void validate(UsuarioDTO register){
 
         if(register.getNombre() == null){
-            throw new ValidateException("se requiere una cantidad");
+            throw new ValidateException("se requiere un nombre");
         }
         if(register.getApellido() == null){
-            throw new ValidateException("se requiere una unidad");
+            throw new ValidateException("se requiere un apellido");
         }
         if(register.getCedula() == null){
-            throw new ValidateException("se requiere un alimento");
+            throw new ValidateException("se requiere una cedula");
         }
         if(register.getRol() == null){
-            throw new ValidateException("se requiere un alimento");
+            throw new ValidateException("se requiere un rol");
         }
         if(register.getCorreo() == null){
-            throw new ValidateException("se requiere un alimento");
+            throw new ValidateException("se requiere un correo");
         }
         if(register.getPassword() == null){
             throw new ValidateException("se requiere un alimento");

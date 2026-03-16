@@ -34,7 +34,7 @@ public class UsuarioServiceImplementation implements UsuarioService {
     @Transactional(readOnly = true)
     public UsuarioDTO findById(Long id) {
         Usuario entidad = repository.findById(id)
-                .orElseThrow(() -> new NoDataFoundException("No se encontro el medicamento por el id "+ id));
+                .orElseThrow(() -> new NoDataFoundException("No se encontro el usuario por el id "+ id));
         return mapper.toDTO(entidad);
     }
     //el unico validador es si el valor de cantidad es mayor a 0
@@ -55,13 +55,13 @@ public class UsuarioServiceImplementation implements UsuarioService {
             Usuario update = repository.save(entidad);
             return mapper.toDTO(update);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id);
+        throw new NoDataFoundException("No se puede actualizar: No existe el usuario con ID" + id);
     }
 
     @Override
     public void delete(Long id) {
         Usuario entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id));
+                .orElseThrow(()-> new NoDataFoundException("No se puede actualizar: No existe el usuario con ID" + id));
         repository.delete(entidad);
     }
 }

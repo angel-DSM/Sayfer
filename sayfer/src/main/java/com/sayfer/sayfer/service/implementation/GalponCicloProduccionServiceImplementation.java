@@ -36,7 +36,7 @@ public class GalponCicloProduccionServiceImplementation implements GalponCicloPr
     @Override
     public GalponCicloProduccionDTO findById(Integer id) {
         GalponCicloProduccion entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("identificador " + id + " no encontrado"));
+                .orElseThrow(()-> new NoDataFoundException("identificador del GalponCicloProduccion" + id + " no encontrado"));
         return mapper.toDTO(entidad);
     }
 
@@ -57,13 +57,13 @@ public class GalponCicloProduccionServiceImplementation implements GalponCicloPr
             GalponCicloProduccion update = repository.save(entidad);
             return mapper.toDTO(update);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el ciclo con ID" + id);
+        throw new NoDataFoundException("No se puede actualizar: No existe el GalponCicloProduccion con ID" + id);
     }
 
     @Override
     public void delete(Integer id) {
         GalponCicloProduccion entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("No existe el ciclo con ID" + id));
+                .orElseThrow(()-> new NoDataFoundException("No existe el GalponCicloProduccion con ID" + id));
         repository.delete(entidad);
     }
 }

@@ -34,7 +34,7 @@ public class TipoMuerteServiceImplementation implements TipoMuerteService {
     @Transactional(readOnly = true)
     public TipoMuerteDTO findById(Integer id) {
         TipoMuerte entidad = repository.findById(id)
-                .orElseThrow(() -> new NoDataFoundException("No se encontro el medicamento por el id "+ id));
+                .orElseThrow(() -> new NoDataFoundException("No se encontro el tipo de muerte por el id "+ id));
         return mapper.toDTO(entidad);
     }
     //el unico validador es si el valor de cantidad es mayor a 0

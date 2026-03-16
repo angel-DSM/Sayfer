@@ -9,5 +9,6 @@ public class CicloProduccionValidator {
         if(register.getNombreCiclo() == null){
             throw new ValidateException("se requiere el nombre");
         }
+
     }
 }

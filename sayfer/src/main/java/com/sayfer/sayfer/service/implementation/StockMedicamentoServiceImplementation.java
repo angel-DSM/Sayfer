@@ -27,7 +27,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
         if (search == null || search.trim().isEmpty()) {
             StockMedicamentos = repository.findAll(pageable);
         } else {
-            StockMedicamentos = repository.findBycantidad_actualContainingIgnoreCase(pageable, search);
+            StockMedicamentos = repository.findBycantidadActualContainingIgnoreCase(pageable, search);
         }
         return new PageImpl<>(
                 StockMedicamentos.getContent().stream()
@@ -42,7 +42,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
     public StockMedicamentoDTO findById(Integer id) {
         StockMedicamento entidad = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de medicamento con id: " + id));
         return mapper.toDTO(entidad);
     }
 
@@ -59,7 +59,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
         StockMedicamentoValidator.validate(obj);
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de medicamento con id: " + id));
         StockMedicamento entidad = mapper.toEntity(obj);
         entidad.setId_stock_medicamento(id);
         StockMedicamento actualizado = repository.save(entidad);
@@ -70,7 +70,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
     public void delete(Integer id) {
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró Stock de medicamento con id: " + id));
         repository.deleteById(id);
     }
 }

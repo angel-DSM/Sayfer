@@ -44,7 +44,7 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
     public IngMedicamentoDTO findById(Integer id) {
         IngMedicamento entidad = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró ingreso de medicamento con id: " + id));
         return mapper.toDTO(entidad);
     }
 
@@ -61,7 +61,7 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
         IngMedicamentoValidator.validate(obj);
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró ingreso de medicamento con id: " + id));
         IngMedicamento entidad = mapper.toEntity(obj);
         entidad.setIng_medicamento(id);
         IngMedicamento actualizado = repository.save(entidad);
@@ -72,7 +72,7 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
     public void delete(Integer id) {
         repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de alimento con id: " + id));
+                        "No se encontró ingreso de medicamento con id: " + id));
         repository.deleteById(id);
     }
 }

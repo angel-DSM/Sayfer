@@ -10,7 +10,7 @@ public class StockMedicamentoValidator {
         if(register.getId_unidad() == null){
             throw new ValidateException("se requiere una unidad de peso");
         }
-        if(register.getCantidad_actual() == null){
+        if(register.getCantidadActual() == null){
             throw new ValidateException("se requiere una cantidad");
         }
         if(register.getId_tipo_medicamento() == null){

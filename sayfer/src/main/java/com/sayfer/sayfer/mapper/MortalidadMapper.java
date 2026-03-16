@@ -15,7 +15,7 @@ public class MortalidadMapper extends GenericMapper<Mortalidad, MortalidadDTO>{
         return MortalidadDTO.builder()
                 .id_Mortalidad(entity.getId_Mortalidad())
                 .fecha_de_muerte(entity.getFecha_de_muerte())
-                .cantidad_muertos(entity.getCantidad_muertos())
+                .muertos(entity.getMuertos())
                 .causa(entity.getCausa())
                 .build();
     }
@@ -28,7 +28,7 @@ public class MortalidadMapper extends GenericMapper<Mortalidad, MortalidadDTO>{
         return Mortalidad.builder()
                 .id_Mortalidad(dto.getId_Mortalidad())
                 .fecha_de_muerte(dto.getFecha_de_muerte())
-                .cantidad_muertos(dto.getCantidad_muertos())
+                .muertos(dto.getMuertos())
                 .causa(dto.getCausa())
                 .build();
     }

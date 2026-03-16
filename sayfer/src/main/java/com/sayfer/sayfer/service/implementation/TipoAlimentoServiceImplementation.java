@@ -36,7 +36,7 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
     @Override
     public TipoAlimentoDTO findById(Integer id) {
         TipoAlimento entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("identificador " + id + " no encontrado"));
+                .orElseThrow(()-> new NoDataFoundException("No se enconto el tipo de alimento con el identificador " + id));
         return mapper.toDTO(entidad);
     }
 
@@ -57,7 +57,7 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
             TipoAlimento update = repository.save(entidad);
             return mapper.toDTO(update);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el TipoAlimento con ID " + id);
+        throw new NoDataFoundException("No se enconto el tipo de alimento con el identificador " + id);
     }
 
     @Override

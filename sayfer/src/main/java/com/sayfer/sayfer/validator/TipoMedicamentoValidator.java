@@ -7,7 +7,7 @@ public class TipoMedicamentoValidator {
     public static void validate(TipoMedicamentoDTO register){
 
         if(register.getDescripcion_medi() == null){
-            throw new ValidateException("se requiere un nombre");
+            throw new ValidateException("se requiere una descripcion");
         }
         if(register.getNombre() == null){
             throw new ValidateException("se requiere un nombre");
