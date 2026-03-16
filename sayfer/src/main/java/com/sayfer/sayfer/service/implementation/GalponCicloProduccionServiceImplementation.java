@@ -34,6 +34,7 @@ public class GalponCicloProduccionServiceImplementation implements GalponCicloPr
     }
 
     @Override
+    @Transactional(readOnly = true)
     public GalponCicloProduccionDTO findById(Integer id) {
         GalponCicloProduccion entidad = repository.findById(id)
                 .orElseThrow(()-> new NoDataFoundException("identificador del GalponCicloProduccion" + id + " no encontrado"));

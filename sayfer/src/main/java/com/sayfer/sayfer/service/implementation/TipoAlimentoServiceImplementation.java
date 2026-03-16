@@ -34,6 +34,7 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public TipoAlimentoDTO findById(Integer id) {
         TipoAlimento entidad = repository.findById(id)
                 .orElseThrow(()-> new NoDataFoundException("No se enconto el tipo de alimento con el identificador " + id));

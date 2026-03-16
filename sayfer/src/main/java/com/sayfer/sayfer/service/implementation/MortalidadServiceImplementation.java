@@ -2,6 +2,7 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.MortalidadDTO;
 import com.sayfer.sayfer.entity.Mortalidad;
+import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.mapper.MortalidadMapper;
 import com.sayfer.sayfer.repository.MortalidadRepository;
 import com.sayfer.sayfer.service.MortalidadService;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ public class MortalidadServiceImplementation implements MortalidadService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<MortalidadDTO> findAll(Pageable pageable, String search) {
         Page<Mortalidad> Mortalidads;
         if (search == null || search.trim().isEmpty()) {
@@ -41,9 +44,10 @@ public class MortalidadServiceImplementation implements MortalidadService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MortalidadDTO findById(Integer id) {
         Mortalidad entidad = repository.findById(id)
-                .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
+                .orElseThrow(() -> new NoDataFoundException(
                         "No se encontró datos de mortalidad con el id: " + id));
         return mapper.toDTO(entidad);
     }

@@ -34,6 +34,7 @@ public class CicloProduccionServiceImplementation implements CicloProduccionServ
         }
 
     @Override
+    @Transactional(readOnly = true)
     public CicloProduccionDTO findById(Integer id) {
         CicloProduccion entidad = repository.findById(id)
                 .orElseThrow(()-> new NoDataFoundException("identificador del ciclo " + id + " no encontrado"));

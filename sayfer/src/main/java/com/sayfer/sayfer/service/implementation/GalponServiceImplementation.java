@@ -34,6 +34,7 @@ public class GalponServiceImplementation implements GalponService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public GalponDTO findById(Integer id) {
         Galpon entidad = repository.findById(id)
                 .orElseThrow(()-> new NoDataFoundException("no se encontro galpon con el identificador " + id + " no encontrado"));

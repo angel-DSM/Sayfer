@@ -2,6 +2,7 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.IngAlimentoDTO;
 import com.sayfer.sayfer.entity.IngAlimento;
+import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.mapper.IngAlimentoMapper;
 import com.sayfer.sayfer.repository.IngAlimentoRepository;
 import com.sayfer.sayfer.service.IngAlimentoService;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.stream.Collectors;
 
@@ -25,6 +27,7 @@ public class IngAlimentoServiceImplementation implements IngAlimentoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<IngAlimentoDTO> findAll(Pageable pageable, String search) {
         Page<IngAlimento> ingAlimentos;
         if (search == null || search.trim().isEmpty()) {
@@ -42,9 +45,10 @@ public class IngAlimentoServiceImplementation implements IngAlimentoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IngAlimentoDTO findById(Integer id) {
         IngAlimento entidad = repository.findById(id)
-                .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
+                .orElseThrow(() -> new NoDataFoundException(
                         "No se encontró ingreso de alimento con id: " + id));
         return mapper.toDTO(entidad);
     }

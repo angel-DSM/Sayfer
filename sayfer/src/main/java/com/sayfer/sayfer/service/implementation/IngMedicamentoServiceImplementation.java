@@ -2,6 +2,7 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.IngMedicamentoDTO;
 import com.sayfer.sayfer.entity.IngMedicamento;
+import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.mapper.IngMedicamentoMapper;
 import com.sayfer.sayfer.repository.IngMedicamentoRepository;
 import com.sayfer.sayfer.service.IngMedicamentoService;
@@ -10,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +27,7 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<IngMedicamentoDTO> findAll(Pageable pageable, String search) {
         Page<IngMedicamento> IngMedicamentos;
         if (search == null || search.trim().isEmpty()) {
@@ -41,10 +45,11 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IngMedicamentoDTO findById(Integer id) {
         IngMedicamento entidad = repository.findById(id)
-                .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
-                        "No se encontró ingreso de medicamento con id: " + id));
+                .orElseThrow(() -> new NoDataFoundException(
+                        "No se encontró ingreso de medicina con id: " + id));
         return mapper.toDTO(entidad);
     }
 

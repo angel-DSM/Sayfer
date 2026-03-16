@@ -2,6 +2,7 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.StockMedicamentoDTO;
 import com.sayfer.sayfer.entity.StockMedicamento;
+import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.mapper.StockMedicamentoMapper;
 import com.sayfer.sayfer.repository.StockMedicamentoRepository;
 import com.sayfer.sayfer.service.StockMedicamentoService;
@@ -9,6 +10,7 @@ import com.sayfer.sayfer.validator.StockMedicamentoValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.stream.Collectors;
 
@@ -22,6 +24,7 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<StockMedicamentoDTO> findAll(Pageable pageable, String search) {
         Page<StockMedicamento> StockMedicamentos;
         if (search == null || search.trim().isEmpty()) {
@@ -39,9 +42,10 @@ public class StockMedicamentoServiceImplementation implements StockMedicamentoSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public StockMedicamentoDTO findById(Integer id) {
         StockMedicamento entidad = repository.findById(id)
-                .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
+                .orElseThrow(() -> new NoDataFoundException(
                         "No se encontró Stock de medicamento con id: " + id));
         return mapper.toDTO(entidad);
     }
