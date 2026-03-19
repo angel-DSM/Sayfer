@@ -23,7 +23,7 @@ public class UnidadMedidaController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<UnidadMedidaDTO>>> findAll() {
         List<UnidadMedidaDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Unidad de medida")
                 .createResponse();
     }
 

@@ -23,7 +23,7 @@ public class AdminMedicamentoController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<AdmiMedicamentoDTO>>> findAll() {
         List<AdmiMedicamentoDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Administración de medicamento")
                 .createResponse();
     }
 

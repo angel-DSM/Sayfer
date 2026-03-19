@@ -23,7 +23,7 @@ public class TipoMuerteController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TipoMuerteDTO>>> findAll() {
         List<TipoMuerteDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Tipo de muerte")
                 .createResponse();
     }
 

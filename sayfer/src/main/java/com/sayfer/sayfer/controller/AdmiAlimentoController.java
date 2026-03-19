@@ -19,11 +19,10 @@ public class AdmiAlimentoController {
         this.service = service;
     }
 
-    // GET /admi-alimento?page=0&size=10&search=xxx
     @GetMapping
     public ResponseEntity<ApiResponse<List<AdmiAlimentoDTO>>> findAll() {
         List<AdmiAlimentoDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de administracion de alimentos")
                 .createResponse();
     }
 

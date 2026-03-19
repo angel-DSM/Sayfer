@@ -23,7 +23,7 @@ public class GalponController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<GalponDTO>>> findAll() {
         List<GalponDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Galpón")
                 .createResponse();
     }
 

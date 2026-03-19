@@ -23,7 +23,7 @@ public class TipoAlimentoController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<TipoAlimentoDTO>>> findAll() {
         List<TipoAlimentoDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Tipo de alimento")
                 .createResponse();
     }
 

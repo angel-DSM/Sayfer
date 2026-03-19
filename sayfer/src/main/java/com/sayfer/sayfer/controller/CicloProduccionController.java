@@ -19,11 +19,11 @@ public class CicloProduccionController {
         this.service = service;
     }
 
-    // GET /ciclo-produccion?page=0&size=10&search=xxx
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<CicloProduccionDTO>>> findAll() {
         List<CicloProduccionDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+        return new ApiResponse<>(resultado, true, "Listado de Ciclo de producción")
                 .createResponse();
     }
 
