@@ -10,10 +10,13 @@ import com.sayfer.sayfer.validator.StockMedicamentoValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.stream.Collectors;
 
+@Service
+@Transactional
 public class StockMedicamentoServiceImplementation implements StockMedicamentoService {
     private final StockMedicamentoRepository repository;
     private final StockMedicamentoMapper mapper;

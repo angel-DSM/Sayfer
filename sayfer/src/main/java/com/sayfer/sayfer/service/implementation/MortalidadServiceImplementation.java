@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class MortalidadServiceImplementation implements MortalidadService {
     private final MortalidadRepository repository;
     private final MortalidadMapper mapper;

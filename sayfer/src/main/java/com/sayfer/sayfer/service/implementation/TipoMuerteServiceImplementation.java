@@ -7,11 +7,14 @@ import com.sayfer.sayfer.mapper.TipoMuerteMapper;
 import com.sayfer.sayfer.repository.TipoMuerteRepository;
 import com.sayfer.sayfer.service.TipoMuerteService;
 import com.sayfer.sayfer.validator.TipoMuerteValidator;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Transactional
+@Service
 public class TipoMuerteServiceImplementation implements TipoMuerteService {
     private final TipoMuerteRepository repository;
     private final TipoMuerteMapper mapper;

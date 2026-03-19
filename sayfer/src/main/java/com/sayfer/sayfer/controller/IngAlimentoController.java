@@ -19,11 +19,11 @@ public class IngAlimentoController {
         this.service = service;
     }
 
+    // GET /ing-alimento?page=0&size=10&search=xxx
     @GetMapping
     public ResponseEntity<ApiResponse<Page<IngAlimentoDTO>>> findAll(
             Pageable pageable,
             @RequestParam(required = false) String search) {
-
         Page<IngAlimentoDTO> resultado = service.findAll(pageable, search);
         return new ApiResponse<>(resultado, true, "Listado de ingresos de alimento")
                 .createResponse();
@@ -50,7 +50,6 @@ public class IngAlimentoController {
     public ResponseEntity<ApiResponse<IngAlimentoDTO>> update(
             @PathVariable Integer id,
             @RequestBody IngAlimentoDTO dto) {
-
         IngAlimentoDTO resultado = service.update(id, dto);
         return new ApiResponse<>(resultado, true, "Ingreso de alimento actualizado exitosamente")
                 .createResponse();

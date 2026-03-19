@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class IngMedicamentoServiceImplementation implements IngMedicamentoService {
 
     private final IngMedicamentoRepository repository;

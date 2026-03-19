@@ -1,26 +1,63 @@
 package com.sayfer.sayfer.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sayfer.sayfer.dto.ApiResponse;
+import com.sayfer.sayfer.dto.UnidadMedidaDTO;
+import com.sayfer.sayfer.service.UnidadMedidaService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
-import com.sayfer.sayfer.entity.UnidadMedida;
-import com.sayfer.sayfer.repository.UnidadMedidaRepository;
+import java.util.List;
 
 @RestController
 @RequestMapping("/unidad-medida")
 public class UnidadMedidaController {
 
-    @Autowired
-    private UnidadMedidaRepository repository;
+    private final UnidadMedidaService service;
 
-    @GetMapping
-    public List<UnidadMedida> listar() {
-        return repository.findAll();
+    public UnidadMedidaController(UnidadMedidaService service) {
+        this.service = service;
     }
 
+    // GET /unidad-medida?page=0&size=10&search=xxx
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<UnidadMedidaDTO>>> findAll() {
+        List<UnidadMedidaDTO> resultado = service.findAll();
+        return new ApiResponse<>(resultado, true, "Listado de usuarios")
+                .createResponse();
+    }
+
+    // GET /unidad-medida/1
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<UnidadMedidaDTO>> findById(@PathVariable Integer id) {
+        UnidadMedidaDTO resultado = service.findById(id);
+        return new ApiResponse<>(resultado, true, "Unidad de medida encontrada")
+                .createResponse();
+    }
+
+    // POST /unidad-medida
     @PostMapping
-    public UnidadMedida guardar(@RequestBody UnidadMedida unidadMedida) {
-        return repository.save(unidadMedida);
+    public ResponseEntity<ApiResponse<UnidadMedidaDTO>> create(@RequestBody UnidadMedidaDTO dto) {
+        UnidadMedidaDTO resultado = service.create(dto);
+        return new ApiResponse<>(resultado, true, "Unidad de medida creada exitosamente")
+                .createResponse(HttpStatus.CREATED);
+    }
+
+    // PUT /unidad-medida/1
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<UnidadMedidaDTO>> update(
+            @PathVariable Integer id,
+            @RequestBody UnidadMedidaDTO dto) {
+        UnidadMedidaDTO resultado = service.update(id, dto);
+        return new ApiResponse<>(resultado, true, "Unidad de medida actualizada exitosamente")
+                .createResponse();
+    }
+
+    // DELETE /unidad-medida/1
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Object>> delete(@PathVariable Integer id) {
+        service.delete(id);
+        return new ApiResponse<>(null, true, "Unidad de medida eliminada exitosamente")
+                .createResponse();
     }
 }

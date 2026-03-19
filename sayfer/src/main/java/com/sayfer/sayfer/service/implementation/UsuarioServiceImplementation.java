@@ -7,11 +7,13 @@ import com.sayfer.sayfer.mapper.UsuarioMapper;
 import com.sayfer.sayfer.repository.UsuarioRepository;
 import com.sayfer.sayfer.service.UsuarioService;
 import com.sayfer.sayfer.validator.UsuarioValidator;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Service
 public class UsuarioServiceImplementation implements UsuarioService {
     private final UsuarioRepository repository;
     private final UsuarioMapper mapper;
