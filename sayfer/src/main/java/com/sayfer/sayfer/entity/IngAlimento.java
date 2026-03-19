@@ -34,9 +34,9 @@ public class IngAlimento {
     @Column(name = "valor_total", precision = 10, scale = 2, nullable = false)
     private BigDecimal valor_total;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_unidad")
-    private UnidadMedida id_unidad;
+    private UnidadMedida id_unidad;*/
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_medicamento")

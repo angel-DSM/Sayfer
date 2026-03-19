@@ -46,8 +46,8 @@ public class AdmiAlimento {
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario id_usuario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    /*@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_unidad", nullable = false)
-    private UnidadMedida id_unidad;
+    private UnidadMedida id_unidad;*/
 
 }
