@@ -27,13 +27,21 @@ function headers() {
 }
 
 // ─── LLAMADAS A LA API ────────────────────────────────────
+// Tu backend devuelve: { data: [...], success: true, message: "..." }
+// Esta función extrae el campo "data" automáticamente.
+// Si el endpoint usa paginación (Page<>), extrae "data.content"
 async function GET(path) {
   const r = await fetch(S.apiBase + path, {
     headers: headers(),
     signal: AbortSignal.timeout(6000)
   });
   if (!r.ok) throw new Error(`GET ${path} → ${r.status}`);
-  return r.json();
+  const json = await r.json();
+  // Soporte para ApiResponse<List> y ApiResponse<Page>
+  if (json && json.data !== undefined) {
+    return json.data?.content ?? json.data;
+  }
+  return json;
 }
 
 async function POST(path, body) {
@@ -44,7 +52,8 @@ async function POST(path, body) {
     signal: AbortSignal.timeout(6000)
   });
   if (!r.ok) throw new Error(`POST ${path} → ${r.status}`);
-  return r.json().catch(() => ({}));
+  const json = await r.json().catch(() => ({}));
+  return json?.data ?? json;
 }
 
 // ─── DATOS DEMO (cuando la API no está disponible) ────────
@@ -262,7 +271,7 @@ async function pingApi() {
   dot.className = 'dot pulsing';
   lbl.textContent = 'Conectando...';
   try {
-    await GET('/health'); // Ajustar al endpoint de tu Spring Boot
+    await GET('/galpon'); // ping — endpoint más simple y siempre disponible
     dot.className   = 'dot pulsing';
     lbl.textContent = 'API OK';
     toast('✅', 'Conexión exitosa', S.apiBase);
@@ -303,13 +312,13 @@ async function loadAll() {
   // Carga datos de referencia en paralelo y los guarda en caché
   [S.galpones, S.ciclos, S.tiposAlimento, S.tiposMed,
    S.tiposMuerte, S.usuarios, S.unidades] = await Promise.all([
-    tryGet('/galpones',        'galpones'),
-    tryGet('/ciclos',          'ciclos'),
-    tryGet('/tipos-alimento',  'tiposAlimento'),
-    tryGet('/tipos-medicamento','tiposMed'),
-    tryGet('/tipos-muerte',    'tiposMuerte'),
-    tryGet('/usuarios',        'usuarios'),
-    tryGet('/unidades-medida', 'unidades'),
+    tryGet('/galpon',           'galpones'),
+    tryGet('/ciclo-produccion', 'ciclos'),
+    tryGet('/tipo-alimento',    'tiposAlimento'),
+    tryGet('/tipo-medicamento', 'tiposMed'),
+    tryGet('/tipo-muerte',      'tiposMuerte'),
+    tryGet('/usuario',          'usuarios'),
+    tryGet('/unidad-medida',    'unidades'),
   ]);
   loadDashboard();
 }
@@ -362,7 +371,6 @@ async function loadDashboard() {
 
   // Stock alimento
   const stock = await tryGet('/stock-alimento', 'stockAlimento');
-  const maxS  = Math.max(...stock.map(s => +s.cantidad), 1);
   document.getElementById('dash-stock-alimento').innerHTML = stock.map(s => `
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
@@ -395,7 +403,7 @@ async function loadDashboard() {
 
 // ─── GALPONES ─────────────────────────────────────────────
 async function loadGalpones() {
-  S.galpones = await tryGet('/galpones', 'galpones');
+  S.galpones = await tryGet('/galpon', 'galpones');
   document.getElementById('galpones-tbody').innerHTML = S.galpones.map(g => `
     <tr>
       <td class="mono">${g.id_galpon}</td>
@@ -408,7 +416,7 @@ async function loadGalpones() {
 
 // ─── CICLOS DE PRODUCCIÓN ─────────────────────────────────
 async function loadCiclos() {
-  S.ciclos = await tryGet('/ciclos', 'ciclos');
+  S.ciclos = await tryGet('/ciclo-produccion', 'ciclos');
   document.getElementById('ciclos-tbody').innerHTML = S.ciclos.map(c => {
     const ini  = new Date(c.fecha_inicio);
     const fin  = c.fecha_fin ? new Date(c.fecha_fin) : new Date();
@@ -429,7 +437,7 @@ async function loadCiclos() {
 
 // ─── ALIMENTO ─────────────────────────────────────────────
 async function loadTiposAlimento() {
-  S.tiposAlimento = await tryGet('/tipos-alimento', 'tiposAlimento');
+  S.tiposAlimento = await tryGet('/tipo-alimento', 'tiposAlimento');
   document.getElementById('tipos-alimento-tbody').innerHTML = S.tiposAlimento.map(t => `
     <tr>
       <td class="mono">${t.id_tipo_alimento}</td>
@@ -458,7 +466,7 @@ async function loadStockAlimento() {
 }
 
 async function loadIngAlimento() {
-  const data = await tryGet('/ingresos-alimento', 'ingAlimento');
+  const data = await tryGet('/ing-alimento', 'ingAlimento');
   document.getElementById('ing-alimento-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_ing_alimento}</td>
@@ -473,7 +481,7 @@ async function loadIngAlimento() {
 
 // ─── MEDICAMENTOS ─────────────────────────────────────────
 async function loadTiposMed() {
-  S.tiposMed = await tryGet('/tipos-medicamento', 'tiposMed');
+  S.tiposMed = await tryGet('/tipo-medicamento', 'tiposMed');
   document.getElementById('tipos-med-tbody').innerHTML = S.tiposMed.map(t => `
     <tr>
       <td class="mono">${t.id_tipo_medicamento}</td>
@@ -501,7 +509,7 @@ async function loadStockMed() {
 }
 
 async function loadIngMed() {
-  const data = await tryGet('/ingresos-medicamento', 'ingMed');
+  const data = await tryGet('/ing-medicamento', 'ingMed');
   document.getElementById('ing-med-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_ing_medicamento}</td>
@@ -517,7 +525,7 @@ async function loadIngMed() {
 
 // ─── MORTALIDAD ───────────────────────────────────────────
 async function loadTiposMuerte() {
-  S.tiposMuerte = await tryGet('/tipos-muerte', 'tiposMuerte');
+  S.tiposMuerte = await tryGet('/tipo-muerte', 'tiposMuerte');
   document.getElementById('tipos-muerte-tbody').innerHTML = S.tiposMuerte.map(t => `
     <tr>
       <td class="mono">${t.id_tipo_muerte}</td>
@@ -562,7 +570,7 @@ async function loadMortalidad() {
 
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
-  const data = await tryGet('/administracion-alimento', 'admAlimento');
+  const data = await tryGet('/admi-alimento', 'admAlimento');
   document.getElementById('adm-alimento-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_admi_alimento}</td>
@@ -578,7 +586,7 @@ async function loadAdmAlimento() {
 
 // ─── ADMINISTRACIÓN DE MEDICAMENTOS ──────────────────────
 async function loadAdmMed() {
-  const data = await tryGet('/administracion-medicamento', 'admMed');
+  const data = await tryGet('/admi-medicamento', 'admMed');
   document.getElementById('adm-med-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_admi_medicamento}</td>
@@ -595,7 +603,7 @@ async function loadAdmMed() {
 
 // ─── USUARIOS ─────────────────────────────────────────────
 async function loadUsuarios() {
-  S.usuarios = await tryGet('/usuarios', 'usuarios');
+  S.usuarios = await tryGet('/usuario', 'usuarios');
   const rolBadge = r => r === 'admin' ? 'badge-yellow' : r === 'veterinario' ? 'badge-blue' : 'badge-gray';
   document.getElementById('usuarios-tbody').innerHTML = S.usuarios.map(u => `
     <tr>
@@ -609,7 +617,7 @@ async function loadUsuarios() {
 
 // ─── UNIDADES DE MEDIDA ───────────────────────────────────
 async function loadUnidades() {
-  S.unidades = await tryGet('/unidades-medida', 'unidades');
+  S.unidades = await tryGet('/unidad-medida', 'unidades');
   document.getElementById('unidades-tbody').innerHTML = S.unidades.map(u => `
     <tr><td class="mono">${u.id_unidad}</td><td>${u.nombre_unidad}</td></tr>`).join('');
 }
@@ -630,40 +638,40 @@ async function doPost(path, payload, modalId, reloadFn, label) {
 function v(id) { return document.getElementById(id)?.value || ''; }
 
 function postGalpon() {
-  doPost('/galpones',
+  doPost('/galpon',
     { nombre: v('g-nombre'), capacidad: +v('g-capacidad') },
     'modal-galpon', loadGalpones, 'Galpón');
 }
 function postCiclo() {
-  doPost('/ciclos',
+  doPost('/ciclo-produccion',
     { nombre_ciclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
     'modal-ciclo', loadCiclos, 'Ciclo');
 }
 function postTipoAlimento() {
-  doPost('/tipos-alimento',
+  doPost('/tipo-alimento',
     { nombre_alimento: v('ta-nombre'), descripcion_alimento: v('ta-desc') },
     'modal-tipo-alimento', () => { loadTiposAlimento(); loadStockAlimento(); }, 'Tipo Alimento');
 }
 function postIngAlimento() {
-  doPost('/ingresos-alimento',
+  doPost('/ing-alimento',
     { id_tipo_alimento: +v('ia-tipo'), cantidad: +v('ia-cantidad'),
       fecha_ingreso: v('ia-fecha'), valor_unitario: +v('ia-vunit'), valor_total: +v('ia-vtotal') },
     'modal-ing-alimento', () => { loadIngAlimento(); loadStockAlimento(); }, 'Ingreso Alimento');
 }
 function postTipoMed() {
-  doPost('/tipos-medicamento',
+  doPost('/tipo-medicamento',
     { nombre: v('tm-nombre'), descripcion: v('tm-desc') },
     'modal-tipo-med', loadTiposMed, 'Tipo Medicamento');
 }
 function postIngMed() {
-  doPost('/ingresos-medicamento',
+  doPost('/ing-medicamento',
     { id_tipo_medicamento: +v('im-tipo'), cantidad: +v('im-cantidad'),
       id_unidad: +v('im-unidad'), fecha_ingreso: v('im-fecha'),
       valor_unitario: +v('im-vunit'), valor_total: +v('im-vtotal') },
     'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
 }
 function postTipoMuerte() {
-  doPost('/tipos-muerte',
+  doPost('/tipo-muerte',
     { nombre: v('tmu-nombre'), descripcion: v('tmu-desc') },
     'modal-tipo-muerte', loadTiposMuerte, 'Tipo Muerte');
 }
@@ -675,14 +683,14 @@ function postMortalidad() {
     'modal-mortalidad', loadMortalidad, 'Mortalidad');
 }
 function postAdmAlimento() {
-  doPost('/administracion-alimento',
+  doPost('/admi-alimento',
     { id_tipo_alimento: +v('aa-tipo'), id_galpon: +v('aa-galpon'),
       id_ciclo: +v('aa-ciclo'), id_usuario: +v('aa-usuario'),
       cantidad_utilizada: +v('aa-cantidad'), fecha_alimentacion: v('aa-fecha') },
     'modal-adm-alimento', loadAdmAlimento, 'Alimentación');
 }
 function postAdmMed() {
-  doPost('/administracion-medicamento',
+  doPost('/admi-medicamento',
     { id_tipo_medicamento: +v('am-tipo'), id_galpon: +v('am-galpon'),
       id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'),
       id_unidad: +v('am-unidad'), cantidad_utilizada: +v('am-cantidad'),
@@ -690,12 +698,12 @@ function postAdmMed() {
     'modal-adm-med', loadAdmMed, 'Medicación');
 }
 function postUsuario() {
-  doPost('/usuarios',
+  doPost('/usuario',
     { nombre: v('u-nombre'), apellido: v('u-apellido'), fecha_registro: v('u-fecha'), rol: v('u-rol') },
     'modal-usuario', loadUsuarios, 'Usuario');
 }
 function postUnidad() {
-  doPost('/unidades-medida',
+  doPost('/unidad-medida',
     { nombre_unidad: v('un-nombre') },
     'modal-unidad', loadUnidades, 'Unidad');
 }
