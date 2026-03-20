@@ -16,36 +16,131 @@
 <!-- ═══════════════════════════════════════
      PANTALLA DE LOGIN
 ═══════════════════════════════════════ -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="sb-logo">
-        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
+<div id="login-screen" class="login-screen-animated">
+  <div class="login-container">
+    <!-- Fondo con gradiente y formas decorativas -->
+    <div class="login-background">
+      <div class="gradient-shape shape-1"></div>
+      <div class="gradient-shape shape-2"></div>
+      <div class="gradient-shape shape-3"></div>
+    </div>
+    
+    <!-- Tarjeta de login -->
+    <div class="login-card">
+      <!-- Encabezado con logo -->
+      <div class="login-header">
+        <div class="login-logo-container">
+          <div class="login-logo-circle">
+            <svg viewBox="0 0 24 24" class="login-logo-svg">
+              <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="login-title">SAYFER</h1>
+        <p class="login-subtitle">Sistema de Gestión Avícola Profesional</p>
       </div>
-      <div>
-        <div class="sb-title" style="color:var(--text)">SAYFER</div>
-        <div class="sb-sub" style="color:var(--text3)">Gestión Avícola · proyecto_sayfer</div>
+
+      <!-- Formulario de login -->
+      <form class="login-form" onsubmit="doLogin(event); return false;">
+        <div class="form-group">
+          <label for="login-user" class="form-label">Usuario</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <circle cx="12" cy="8" r="4" fill="currentColor"/>
+                <path d="M4 20c0-1.1 2.7-2 8-2s8 .9 8 2" fill="currentColor"/>
+              </svg>
+            </span>
+            <input id="login-user" type="text" placeholder="admin" value="admin" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-pass" class="form-label">Contraseña</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <rect x="3" y="11" width="18" height="10" rx="2" fill="currentColor"/>
+                <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" fill="none"/>
+              </svg>
+            </span>
+            <input id="login-pass" type="password" placeholder="••••••" value="1234" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="login-url" class="form-label">URL de la API</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="currentColor"/>
+              </svg>
+            </span>
+            <input id="login-url" type="text" placeholder="http://localhost:8080/api" value="http://localhost:8080/api" class="form-input">
+          </div>
+        </div>
+
+        <button type="submit" class="login-button">
+          <span class="button-text">Ingresar al Sistema</span>
+          <span class="button-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M7 17l9.2-9.2M17 17V7h-10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <div class="login-info">
+          <svg viewBox="0 0 24 24" width="14" height="14">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M12 16v-4m0-4h.01" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span>Modo demo disponible si la API no responde</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PANTALLA DE CARGA - LOADING SCREEN
+═══════════════════════════════════════ -->
+<div id="loading-screen" class="loading-screen" style="display: none;">
+  <div class="loading-container">
+    <!-- Spinner profesional -->
+    <div class="loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-dots">
+        <div class="dot dot-1"></div>
+        <div class="dot dot-2"></div>
+        <div class="dot dot-3"></div>
       </div>
     </div>
-    <div class="form-grid" style="grid-template-columns:1fr; gap:14px; margin-bottom:18px;">
-      <div class="fgroup">
-        <label>Usuario</label>
-        <input id="login-user" type="text" placeholder="admin" value="admin">
+    
+    <!-- Textos y información de carga -->
+    <div class="loading-content">
+      <h2 class="loading-title">Iniciando sesión</h2>
+      <p class="loading-subtitle" id="loading-subtitle">Cargando configuración del sistema...</p>
+      
+      <!-- Barra de progreso -->
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
       </div>
-      <div class="fgroup">
-        <label>Contraseña</label>
-        <input id="login-pass" type="password" placeholder="••••••" value="1234">
+      
+      <!-- Estado de carga -->
+      <div class="loading-status">
+        <span class="status-item" id="status-1">
+          <svg viewBox="0 0 24 24" class="status-icon"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span>Conectando con la API</span>
+        </span>
+        <span class="status-item" id="status-2" style="opacity: 0.4;">
+          <svg viewBox="0 0 24 24" class="status-icon"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span>Cargando datos</span>
+        </span>
+        <span class="status-item" id="status-3" style="opacity: 0.4;">
+          <svg viewBox="0 0 24 24" class="status-icon"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <span>Finalizando</span>
+        </span>
       </div>
-      <div class="fgroup">
-        <label>URL API (Java)</label>
-        <input id="login-url" type="text" placeholder="http://localhost:8080/api" value="http://localhost:8080/api">
-      </div>
-    </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">
-      Ingresar al sistema
-    </button>
-    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">
-      Modo demo disponible si la API no responde
     </div>
   </div>
 </div>

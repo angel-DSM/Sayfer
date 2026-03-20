@@ -137,22 +137,111 @@ async function tryGet(path, demoKey) {
 }
 
 // ─── AUTENTICACIÓN ────────────────────────────────────────
-function doLogin() {
+async function doLogin(event) {
+  if (event) event.preventDefault();
+  
   const url  = document.getElementById('login-url').value.trim();
   const user = document.getElementById('login-user').value.trim();
+  
+  // Validación básica
+  if (!user) {
+    toast('⚠️', 'Error', 'Por favor ingresa un usuario');
+    return;
+  }
+  
+  // Guardar configuración
   if (url) { S.apiBase = url; localStorage.setItem('sayfer_url', url); }
 
+  // Esconder login y mostrar loading
+  document.getElementById('login-screen').style.display = 'none';
+  showLoadingScreen();
+  
+  // Simular pasos de carga
+  updateLoadingStatus(1, 'Conectando con la API');
+  await sleep(600);
+  
+  updateLoadingStatus(2, 'Cargando datos del sistema');
+  await sleep(600);
+  
+  // Crear usuario
   const fakeUser = { nombre: user, apellido: '', rol: 'admin', id_usuario: 1 };
   S.user = fakeUser;
   localStorage.setItem('sayfer_user', JSON.stringify(fakeUser));
-
-  document.getElementById('login-screen').style.display = 'none';
+  
+  // Actualizar interfaz
   document.getElementById('top-username').textContent = user;
   document.getElementById('top-avatar').textContent   = user[0]?.toUpperCase() || 'U';
   document.getElementById('cfg-url').value = S.apiBase;
 
+  updateLoadingStatus(3, 'Finalizando');
+  await sleep(400);
+  
+  // Cargar datos
   pingApi();
-  loadAll();
+  await loadAll();
+  
+  // Cerrar pantalla de carga
+  hideLoadingScreen();
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function showLoadingScreen() {
+  const screen = document.getElementById('loading-screen');
+  if (screen) {
+    screen.style.display = 'flex';
+    // Forzar reflow para activar animaciones
+    void screen.offsetHeight;
+  }
+}
+
+function hideLoadingScreen() {
+  const screen = document.getElementById('loading-screen');
+  if (screen) {
+    screen.style.opacity = '0';
+    screen.style.transition = 'opacity 0.5s ease';
+    setTimeout(() => {
+      screen.style.display = 'none';
+      screen.style.opacity = '1';
+    }, 500);
+  }
+}
+
+function updateLoadingStatus(step, message) {
+  // Actualizar subtítulo
+  const subtitle = document.getElementById('loading-subtitle');
+  if (subtitle) subtitle.textContent = message;
+  
+  // Actualizar estado de items
+  for (let i = 1; i <= 3; i++) {
+    const statusEl = document.getElementById(`status-${i}`);
+    if (!statusEl) continue;
+    
+    if (i < step) {
+      // Completado
+      statusEl.classList.remove('active');
+      statusEl.classList.add('complete');
+      statusEl.style.opacity = '1';
+    } else if (i === step) {
+      // Activo
+      statusEl.classList.add('active');
+      statusEl.classList.remove('complete');
+      statusEl.style.opacity = '1';
+    } else {
+      // Pendiente
+      statusEl.classList.remove('active', 'complete');
+      statusEl.style.opacity = '0.4';
+    }
+  }
+  
+  // Actualizar barra de progreso
+  const progressFill = document.getElementById('progress-fill');
+  if (progressFill) {
+    const percent = (step / 3) * 100;
+    progressFill.style.width = percent + '%';
+  }
 }
 
 function doLogout() {
