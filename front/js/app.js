@@ -246,6 +246,10 @@ function updateLoadingStatus(step, message) {
   }
 }
 
+function confirmLogout() {
+  openModal('modal-confirm-logout');
+}
+
 function doLogout() {
   localStorage.removeItem('sayfer_user');
   location.reload();
@@ -263,6 +267,7 @@ function go(tabId, el, label) {
 
   // Carga lazy por sección
   const loaders = {
+    'perfil':          loadPerfil,
     'dashboard':       loadDashboard,
     'galpones':        loadGalpones,
     'ciclos':          loadCiclos,
@@ -412,6 +417,90 @@ async function loadAll() {
     tryGet('/unidad-medida',    'unidades'),
   ]);
   loadDashboard();
+}
+
+// ─── PERFIL ───────────────────────────────────────────────
+function loadPerfil() {
+  const user = S.user;
+  if (!user) return;
+
+  // Llenar campos editables
+  document.getElementById('perfil-edit-nombre').value = user.nombre || '';
+  document.getElementById('perfil-edit-apellido').value = user.apellido || '';
+  document.getElementById('perfil-edit-email').value = user.email || '';
+  document.getElementById('perfil-edit-telefono').value = user.telefono || '';
+  document.getElementById('perfil-edit-user').value = user.nombre || '';
+  document.getElementById('perfil-edit-role').value = user.rol || '';
+
+  // Cargar tema guardado
+  const savedTheme = localStorage.getItem('sayfer_theme') || 'system';
+  updateThemeUI(savedTheme);
+}
+
+function savePerfil() {
+  const nombre = document.getElementById('perfil-edit-nombre').value.trim();
+  const apellido = document.getElementById('perfil-edit-apellido').value.trim();
+  const email = document.getElementById('perfil-edit-email').value.trim();
+  const telefono = document.getElementById('perfil-edit-telefono').value.trim();
+
+  if (!nombre) {
+    toast('⚠️', 'Validación', 'El nombre es obligatorio');
+    return;
+  }
+
+  // Actualizar datos del usuario
+  S.user.nombre = nombre;
+  S.user.apellido = apellido;
+  S.user.email = email;
+  S.user.telefono = telefono;
+  localStorage.setItem('sayfer_user', JSON.stringify(S.user));
+
+  // Actualizar nombre en topbar
+  document.getElementById('top-username').textContent = nombre;
+  document.getElementById('top-avatar').textContent = nombre[0]?.toUpperCase() || 'U';
+
+  toast('✓', 'Éxito', 'Perfil actualizado correctamente');
+}
+
+function cancelarEditPerfil() {
+  loadPerfil();
+}
+
+function setTheme(theme) {
+  localStorage.setItem('sayfer_theme', theme);
+  applyTheme(theme);
+  updateThemeUI(theme);
+  toast('✓', 'Tema', `Tema cambiado a ${theme === 'light' ? 'claro' : theme === 'dark' ? 'oscuro' : 'del sistema'}`);
+}
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  
+  if (theme === 'system') {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    theme = isDark ? 'dark' : 'light';
+  }
+
+  if (theme === 'dark') {
+    root.style.colorScheme = 'dark';
+    root.setAttribute('data-theme', 'dark');
+  } else {
+    root.style.colorScheme = 'light';
+    root.removeAttribute('data-theme');
+  }
+}
+
+function updateThemeUI(theme) {
+  document.querySelectorAll('.theme-option').forEach(btn => {
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background = 'var(--surface)';
+  });
+  
+  const activeBtn = document.getElementById(`theme-${theme}`);
+  if (activeBtn) {
+    activeBtn.style.borderColor = 'var(--accent)';
+    activeBtn.style.background = 'var(--accent-lt)';
+  }
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────
@@ -801,11 +890,14 @@ function postUnidad() {
 
 // ─── INICIALIZACIÓN ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Cargar tema guardado
+  const savedTheme = localStorage.getItem('sayfer_theme') || 'system';
+  applyTheme(savedTheme);
+
   if (S.user) {
     document.getElementById('login-screen').style.display  = 'none';
     document.getElementById('top-username').textContent    = S.user.nombre;
     document.getElementById('top-avatar').textContent      = S.user.nombre[0]?.toUpperCase() || 'U';
-    document.getElementById('cfg-url').value               = S.apiBase;
     pingApi();
     loadAll();
   }

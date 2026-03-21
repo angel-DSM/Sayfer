@@ -96,6 +96,35 @@
   --sans:      'Plus Jakarta Sans', sans-serif;
 }
 
+/* ─── DARK MODE (Google Material Design) ──────────────── */
+[data-theme="dark"] {
+  --bg:        #121212;
+  --surface:   #1e1e1e;
+  --surface2:  #262626;
+  --sidebar:   #1a2e1a;
+  --sidebar2:  #243624;
+  --sidebar3:  #2e4530;
+  --accent:    #81c784;
+  --accent2:   #66bb6a;
+  --accent-lt: #1b5e20;
+  --accent-md: #2e7d32;
+  --text:      #ffffff;
+  --text2:     #e0e0e0;
+  --text3:     #b3b3b3;
+  --border:    rgba(255,255,255,0.12);
+  --border2:   rgba(255,255,255,0.08);
+  --red:       #ff6b6b;
+  --red-lt:    #3d1f1f;
+  --red-md:    #5c2c2c;
+  --yellow:    #ffd54f;
+  --yellow-lt: #3d2f1f;
+  --yellow-md: #5c4c2c;
+  --blue:      #64b5f6;
+  --blue-lt:   #1f3d5c;
+  --shadow:    0 1px 3px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+}
+
 /* ─── RESET ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; }
@@ -1237,4 +1266,10 @@ select option { background: var(--surface); }
     transform: scale(1) rotate(0deg);
     opacity: 1;
   }
+}
+
+/* ─── DARK MODE TRANSITIONS ──────────────────────────── */
+body, #topbar, #sidebar, .card, .tab-content, input, textarea, select, button,
+.user-chip, .api-pill, .form-input, .modal, .modal-content {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
