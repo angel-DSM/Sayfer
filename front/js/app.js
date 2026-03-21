@@ -140,17 +140,13 @@ async function tryGet(path, demoKey) {
 async function doLogin(event) {
   if (event) event.preventDefault();
   
-  const url  = document.getElementById('login-url').value.trim();
   const user = document.getElementById('login-user').value.trim();
   
   // Validación básica
   if (!user) {
-    toast('⚠️', 'Error', 'Por favor ingresa un usuario');
+    toast('⚠️', 'Error', 'Por favor ingresa tu usuario');
     return;
   }
-  
-  // Guardar configuración
-  if (url) { S.apiBase = url; localStorage.setItem('sayfer_url', url); }
 
   // Esconder login y mostrar loading
   document.getElementById('login-screen').style.display = 'none';
@@ -158,10 +154,10 @@ async function doLogin(event) {
   
   // Simular pasos de carga
   updateLoadingStatus(1, 'Conectando con la API');
-  await sleep(600);
+  await sleep(350);
   
   updateLoadingStatus(2, 'Cargando datos del sistema');
-  await sleep(600);
+  await sleep(350);
   
   // Crear usuario
   const fakeUser = { nombre: user, apellido: '', rol: 'admin', id_usuario: 1 };
@@ -171,10 +167,9 @@ async function doLogin(event) {
   // Actualizar interfaz
   document.getElementById('top-username').textContent = user;
   document.getElementById('top-avatar').textContent   = user[0]?.toUpperCase() || 'U';
-  document.getElementById('cfg-url').value = S.apiBase;
 
   updateLoadingStatus(3, 'Finalizando');
-  await sleep(400);
+  await sleep(250);
   
   // Cargar datos
   pingApi();
@@ -182,6 +177,13 @@ async function doLogin(event) {
   
   // Cerrar pantalla de carga
   hideLoadingScreen();
+
+  // Mostrar dashboard
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-dashboard')?.classList.add('active');
+  document.getElementById('page-label').textContent = 'Dashboard';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.nav-item[onclick*="dashboard"]')?.classList.add('active');
 }
 
 function sleep(ms) {
