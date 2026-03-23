@@ -16,117 +16,37 @@
 <!-- ═══════════════════════════════════════
      PANTALLA DE LOGIN
 ═══════════════════════════════════════ -->
-<div id="login-screen" class="login-screen-animated">
-  <div class="login-container">
-    <div class="login-background">
-      <div class="gradient-shape shape-1"></div>
-      <div class="gradient-shape shape-2"></div>
-      <div class="gradient-shape shape-3"></div>
-    </div>
-    <div class="login-card login-card-2col">
-      <div class="login-card-left">
-        <div class="login-visual-bg">
-          <div class="login-visual-decor">
-            <div class="decor-shape decor-1"></div>
-            <div class="decor-shape decor-2"></div>
-            <div class="decor-shape decor-3"></div>
-          </div>
-          <div class="login-visual-content">
-            <div class="login-logo-circle big">
-              <svg viewBox="0 0 64 64" class="login-logo-svg-big">
-                <ellipse cx="32" cy="32" rx="30" ry="30" fill="#3d7a3d" fill-opacity="0.13"/>
-                <path d="M32 54c-8 0-18-5-18-16 0-7 6-14 14-14 2-6 8-10 14-10 7 0 12 5 12 12 0 4-2 8-6 10 2 2 2 4 2 6 0 7-8 12-18 12z" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="44" cy="22" rx="2" ry="3" fill="#fff" fill-opacity="0.8"/>
-                <circle cx="38" cy="24" r="2" fill="#222"/>
-                <ellipse cx="28" cy="44" rx="3" ry="2" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="36" cy="50" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="24" cy="36" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="50" cy="36" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="32" cy="54" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-                <ellipse cx="32" cy="60" rx="1" ry="0.5" fill="#fff" fill-opacity="0.5"/>
-                <ellipse cx="54" cy="18" rx="2" ry="1" fill="#fff" fill-opacity="0.5"/>
-                <ellipse cx="18" cy="28" rx="2" ry="1" fill="#fff" fill-opacity="0.5"/>
-              </svg>
-            </div>
-            <h1 class="login-hello">¡Hola Sayfer! <span class="wave">👋</span></h1>
-            <div class="login-desc">Sistema profesional para la gestión avícola.<br><b>Modo demo</b>: automatiza, controla y ahorra tiempo en tu producción.</div>
-            <div class="login-copyright">© 2026 Sayfer. Todos los derechos reservados.</div>
-            <div class="login-version">v0.0.1</div>
-          </div>
-        </div>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="sb-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
       </div>
-      <div class="login-card-right">
-        <form class="login-form login-form-plain" onsubmit="doLogin(event); return false;">
-          <div class="form-group">
-            <label for="login-user" class="form-label">Usuario</label>
-            <div class="input-wrapper">
-              <span class="input-icon">
-                <svg viewBox="0 0 24 24" width="16" height="16">
-                  <circle cx="12" cy="8" r="4" fill="currentColor"/>
-                  <path d="M4 20c0-1.1 2.7-2 8-2s8 .9 8 2" fill="currentColor"/>
-                </svg>
-              </span>
-              <input id="login-user" type="text" placeholder="Usuario demo" value="admin" class="form-input">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="login-pass" class="form-label">Contraseña</label>
-            <div class="input-wrapper">
-              <span class="input-icon">
-                <svg viewBox="0 0 24 24" width="16" height="16">
-                  <rect x="3" y="11" width="18" height="10" rx="2" fill="currentColor"/>
-                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" fill="none"/>
-                </svg>
-              </span>
-              <input id="login-pass" type="password" placeholder="••••••" value="1234" class="form-input">
-            </div>
-          </div>
-          <button type="submit" class="login-button">
-            <span class="button-text">Entrar al demo</span>
-            <span class="button-icon">
-              <svg viewBox="0 0 24 24" width="16" height="16">
-                <path d="M7 17l9.2-9.2M17 17V7h-10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </button>
-          <div class="forgot-password">
-            <a href="#" onclick="alert('Contacta al administrador para recuperar tu acceso avícola.');return false;">¿Olvidaste tu contraseña? <span class="pw-link">Recuperar acceso avícola</span></a>
-          </div>
-          <div class="login-info">
-            <svg viewBox="0 0 24 24" width="14" height="14">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
-              <path d="M12 16v-4m0-4h.01" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
-            </svg>
-            <span>Modo demo disponible si la API no responde</span>
-          </div>
-        </form>
+      <div>
+        <div class="sb-title" style="color:var(--text)">SAYFER</div>
+        <div class="sb-sub" style="color:var(--text3)">Gestión Avícola · proyecto_sayfer</div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     PANTALLA DE CARGA - LOADING SCREEN
-═══════════════════════════════════════ -->
-<div id="loading-screen" class="loading-screen" style="display: none;">
-  <div class="loading-box">
-    <div class="loading-visual">
-      <div class="loading-square"></div>
-      <svg class="chicken-svg" viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 54c-8 0-18-5-18-16 0-7 6-14 14-14 2-6 8-10 14-10 7 0 12 5 12 12 0 4-2 8-6 10 2 2 2 4 2 6 0 7-8 12-18 12z" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="44" cy="22" rx="2" ry="3" fill="#fff" fill-opacity="0.8"/>
-        <circle cx="38" cy="24" r="2" fill="#222"/>
-        <ellipse cx="28" cy="44" rx="3" ry="2" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="36" cy="50" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="24" cy="36" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="50" cy="36" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="32" cy="54" rx="2" ry="1" fill="#fff" fill-opacity="0.8"/>
-        <ellipse cx="32" cy="60" rx="1" ry="0.5" fill="#fff" fill-opacity="0.5"/>
-        <ellipse cx="54" cy="18" rx="2" ry="1" fill="#fff" fill-opacity="0.5"/>
-        <ellipse cx="18" cy="28" rx="2" ry="1" fill="#fff" fill-opacity="0.5"/>
-      </svg>
+    <div class="form-grid" style="grid-template-columns:1fr; gap:14px; margin-bottom:18px;">
+      <div class="fgroup">
+        <label>Usuario</label>
+        <input id="login-user" type="text" placeholder="admin" value="admin">
+      </div>
+      <div class="fgroup">
+        <label>Contraseña</label>
+        <input id="login-pass" type="password" placeholder="••••••" value="1234">
+      </div>
+      <div class="fgroup">
+        <label>URL API (Java)</label>
+        <input id="login-url" type="text" placeholder="http://localhost:8090" value="http://localhost:8090">
+      </div>
     </div>
-    <p class="loading-text">Cargando</p>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">
+      Ingresar al sistema
+    </button>
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">
+      Modo demo disponible si la API no responde
+    </div>
   </div>
 </div>
 
@@ -142,7 +62,7 @@
       <div class="dot pulsing" id="api-dot"></div>
       <span id="api-label">Conectando...</span>
     </div>
-    <div class="user-chip" onclick="go('perfil',null,'Mi Perfil')" style="cursor:pointer;">
+    <div class="user-chip">
       <div class="avatar" id="top-avatar">?</div>
       <span id="top-username">Usuario</span>
     </div>
@@ -208,10 +128,6 @@
     </div>
 
     <div class="sb-section-label">SISTEMA</div>
-    <div class="nav-item" onclick="go('perfil',this,'Mi Perfil')">
-      <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg></div>
-      Mi Perfil
-    </div>
     <div class="nav-item" onclick="go('usuarios',this,'Usuarios')">
       <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg></div>
       Usuarios
@@ -222,98 +138,23 @@
     </div>
 
   </div><!-- /sb-scroll -->
+
+  <div class="sb-footer">
+    <div class="sb-logout" onclick="doLogout()">
+      <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Cerrar sesión
+    </div>
+  </div>
 </div><!-- /sidebar -->
 
 <!-- ═══════════════════════════════════════
      CONTENIDO PRINCIPAL
 ═══════════════════════════════════════ -->
 <div id="main">
-
-  <!-- ── PERFIL ── -->
-  <div class="tab-content" id="tab-perfil">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Mi Perfil</div>
-        <div class="page-sub">Información de tu cuenta y configuración personal</div>
-      </div>
-    </div>
-
-    <!-- Información de Perfil Editable -->
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-header">
-        <div class="card-title">Información Personal</div>
-      </div>
-      <div class="card-body">
-        <div class="grid-2">
-          <div class="fgroup">
-            <label class="form-label">Nombre</label>
-            <input type="text" id="perfil-edit-nombre" class="form-input" placeholder="Tu nombre">
-          </div>
-          <div class="fgroup">
-            <label class="form-label">Apellido</label>
-            <input type="text" id="perfil-edit-apellido" class="form-input" placeholder="Tu apellido">
-          </div>
-          <div class="fgroup">
-            <label class="form-label">Correo Electrónico</label>
-            <input type="email" id="perfil-edit-email" class="form-input" placeholder="correo@ejemplo.com">
-          </div>
-          <div class="fgroup">
-            <label class="form-label">Teléfono</label>
-            <input type="tel" id="perfil-edit-telefono" class="form-input" placeholder="+57 ...">
-          </div>
-          <div class="fgroup full">
-            <label class="form-label">Usuario</label>
-            <input type="text" id="perfil-edit-user" class="form-input" placeholder="usuario" disabled style="opacity:0.6;cursor:not-allowed;">
-          </div>
-          <div class="fgroup full">
-            <label class="form-label">Rol</label>
-            <input type="text" id="perfil-edit-role" class="form-input" placeholder="admin" disabled style="opacity:0.6;cursor:not-allowed;">
-          </div>
-        </div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" onclick="savePerfil()">
-            <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Guardar cambios
-          </button>
-          <button class="btn btn-secondary" onclick="cancelarEditPerfil()">
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Apariencia del Sistema -->
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-header">
-        <div class="card-title">Apariencia del Sistema</div>
-      </div>
-      <div class="card-body">
-        <div class="fgroup">
-          <label class="form-label">Tema</label>
-          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:10px;">
-            <button class="theme-option" id="theme-light" onclick="setTheme('light')" style="padding:16px; border-radius:10px; border:2px solid var(--border); background:var(--surface); cursor:pointer; transition:all .2s;">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" style="margin-bottom:8px; margin-left:auto; margin-right:auto; display:block;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-              <div style="font-weight:600; font-size:13px;">Modo Claro</div>
-            </button>
-            <button class="theme-option" id="theme-dark" onclick="setTheme('dark')" style="padding:16px; border-radius:10px; border:2px solid var(--border); background:var(--surface); cursor:pointer; transition:all .2s;">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" style="margin-bottom:8px; margin-left:auto; margin-right:auto; display:block;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              <div style="font-weight:600; font-size:13px;">Modo Oscuro</div>
-            </button>
-            <button class="theme-option" id="theme-system" onclick="setTheme('system')" style="padding:16px; border-radius:10px; border:2px solid var(--border); background:var(--surface); cursor:pointer; transition:all .2s;">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2" style="margin-bottom:8px; margin-left:auto; margin-right:auto; display:block;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              <div style="font-weight:600; font-size:13px;">Sistema</div>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Botón de Cerrar Sesión -->
-    <button class="btn btn-secondary" onclick="confirmLogout()" style="width:100%;">
-      <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Cerrar sesión
-    </button>
-  </div>
 
   <!-- ── DASHBOARD ── -->
   <div class="tab-content active" id="tab-dashboard">
@@ -444,7 +285,7 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Tipo Alimento</th><th>Cantidad</th><th>Fecha Ingreso</th><th>Valor Unit.</th><th>Valor Total</th></tr></thead>
+          <thead><tr><th>ID</th><th>Tipo Alimento</th><th>Cantidad</th><th>Fecha Ingreso</th><th>Valor Total</th></tr></thead>
           <tbody id="ing-alimento-tbody">
             <tr><td colspan="6" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -481,7 +322,7 @@
         <div class="card-header"><span class="card-title">Tipos de Medicamento</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th></tr></thead>
             <tbody id="tipos-med-tbody">
               <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -493,7 +334,7 @@
       <div class="card-header"><span class="card-title">Historial de Ingresos</span></div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Medicamento</th><th>Cantidad</th><th>Unidad</th><th>Fecha</th><th>Valor Unit.</th><th>Valor Total</th></tr></thead>
+          <thead><tr><th>ID</th><th>Medicamento</th><th>Cantidad total</th><th>Unidad</th><th>Fecha</th><th>Valor Total</th></tr></thead>
           <tbody id="ing-med-tbody">
             <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -657,7 +498,7 @@
     <div class="card">
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Fecha Registro</th></tr></thead>
+          <thead><tr><th>Cedula</th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Fecha Registro</th></tr></thead>
           <tbody id="usuarios-tbody">
             <tr><td colspan="5" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -677,7 +518,7 @@
         <div class="card-body">
           <div class="fgroup" style="margin-bottom:12px">
             <label>URL Base</label>
-            <input id="cfg-url" type="text" placeholder="http://localhost:8080/api">
+            <input id="cfg-url" type="text" placeholder="http://localhost:8090">
           </div>
           <div class="fgroup" style="margin-bottom:12px">
             <label>Token / Bearer</label>
@@ -693,13 +534,13 @@
       </div>
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Unidades de Medida</span>
+          <span class="card-title">Unidades de Medidas</span>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-unidad')">+ Agregar</button>
         </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>ID</th><th>Nombre Unidad</th></tr></thead>
-            <tbody id="unidades-tbody">
+            <tbody id="unidad-tbody">
               <tr><td colspan="2" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
           </table>
@@ -768,7 +609,6 @@
       <div class="fgroup full"><label>Tipo de Alimento</label><select id="ia-tipo"></select></div>
       <div class="fgroup"><label>Cantidad (kg)</label><input id="ia-cantidad" type="number" step="0.01" placeholder="0.00"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="ia-fecha" type="date"></div>
-      <div class="fgroup"><label>Valor Unitario (COP)</label><input id="ia-vunit" type="number" step="0.01" placeholder="0.00"></div>
       <div class="fgroup"><label>Valor Total (COP)</label><input id="ia-vtotal" type="number" step="0.01" placeholder="0.00"></div>
     </div>
     <div class="modal-footer">
@@ -799,10 +639,9 @@
     <div class="modal-header"><div class="modal-title">Registrar Ingreso de Medicamento</div><button class="modal-close" onclick="closeModal('modal-ing-med')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Tipo Medicamento</label><select id="im-tipo"></select></div>
-      <div class="fgroup"><label>Cantidad</label><input id="im-cantidad" type="number" step="0.01"></div>
-      <div class="fgroup"><label>Unidad</label><select id="im-unidad"></select></div>
+      <div class="fgroup"><label>Cantidad total</label><input id="im-cantidad" type="number" step="0.01"></div>
+      <div class="fgroup"><label>Unidad medida</label><select id="im-unidad"></select></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="im-fecha" type="date"></div>
-      <div class="fgroup"><label>Valor Unitario</label><input id="im-vunit" type="number" step="0.01"></div>
       <div class="fgroup"><label>Valor Total</label><input id="im-vtotal" type="number" step="0.01"></div>
     </div>
     <div class="modal-footer">
@@ -890,10 +729,14 @@
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Usuario</div><button class="modal-close" onclick="closeModal('modal-usuario')">✕</button></div>
     <div class="form-grid">
+      <div class="fgroup"><label>Cedula</label><input id="u-cedula" type="number"></div>
       <div class="fgroup"><label>Nombre</label><input id="u-nombre" type="text"></div>
       <div class="fgroup"><label>Apellido</label><input id="u-apellido" type="text"></div>
       <div class="fgroup"><label>Fecha Registro</label><input id="u-fecha" type="date"></div>
+      <div class="fgroup"><label>correo</label><input id="u-correo" type="email"></div>
+      <div class="fgroup"><label>contraseña</label><input id="u-contrasena" type="password"></div>
       <div class="fgroup"><label>Rol</label>
+
         <select id="u-rol">
           <option value="admin">Administrador</option>
           <option value="operador">Operador</option>
@@ -916,34 +759,6 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-unidad')">Cancelar</button>
       <button class="btn btn-primary" onclick="postUnidad()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de Confirmación Cerrar Sesión -->
-<div class="modal-overlay" id="modal-confirm-logout">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Cerrar Sesión</div></div>
-    <div style="padding: 20px; color: var(--text);">
-      <p style="margin-bottom: 16px; font-size: 15px;">¿Estás seguro de que deseas cerrar sesión?</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-confirm-logout')">Cancelar</button>
-      <button class="btn btn-primary" style="background-color: var(--red);" onclick="doLogout()">Cerrar Sesión</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de Confirmación Cerrar Sesión -->
-<div class="modal-overlay" id="modal-confirm-logout">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Cerrar Sesión</div></div>
-    <div style="padding: 20px; color: var(--text);">
-      <p style="margin-bottom: 16px; font-size: 15px;">¿Estás seguro de que deseas cerrar sesión?</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-confirm-logout')">Cancelar</button>
-      <button class="btn btn-primary" style="background-color: var(--red);" onclick="doLogout()">Cerrar Sesión</button>
     </div>
   </div>
 </div>

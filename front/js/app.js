@@ -6,7 +6,7 @@
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────
 const S = {
-  apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8080/api',
+  apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8090',
   token:   localStorage.getItem('sayfer_token') || '',
   user:    JSON.parse(localStorage.getItem('sayfer_user') || 'null'),
   // caché de datos de referencia
@@ -27,22 +27,17 @@ function headers() {
 }
 
 // ─── LLAMADAS A LA API ────────────────────────────────────
-// Tu backend devuelve: { data: [...], success: true, message: "..." }
-// Esta función extrae el campo "data" automáticamente.
-// Si el endpoint usa paginación (Page<>), extrae "data.content"
 async function GET(path) {
   const r = await fetch(S.apiBase + path, {
     headers: headers(),
     signal: AbortSignal.timeout(6000)
   });
-  if (!r.ok) throw new Error(`GET ${path} → ${r.status}`);
-  const json = await r.json();
-  // Soporte para ApiResponse<List> y ApiResponse<Page>
-  if (json && json.data !== undefined) {
-    return json.data?.content ?? json.data;
-  }
-  return json;
+  if (!r.ok) throw new Error(`Error: ${r.status}`);
+
+  const res = await r.json();
+  return res.data;
 }
+
 
 async function POST(path, body) {
   const r = await fetch(S.apiBase + path, {
@@ -52,202 +47,49 @@ async function POST(path, body) {
     signal: AbortSignal.timeout(6000)
   });
   if (!r.ok) throw new Error(`POST ${path} → ${r.status}`);
-  const json = await r.json().catch(() => ({}));
-  return json?.data ?? json;
+  return r.json().catch(() => ({}));
 }
 
-// ─── DATOS DEMO (cuando la API no está disponible) ────────
-const DEMO = {
-  galpones: [
-    {id_galpon:1, nombre:'Galpón Norte 1', capacidad:12000},
-    {id_galpon:2, nombre:'Galpón Norte 2', capacidad:10000},
-    {id_galpon:3, nombre:'Galpón Sur 1',   capacidad:15000},
-    {id_galpon:4, nombre:'Galpón Sur 2',   capacidad:12000}
-  ],
-  ciclos: [
-    {id_ciclo:1, nombre_ciclo:'Ciclo 2026-A', fecha_inicio:'2026-01-10', fecha_fin:null},
-    {id_ciclo:2, nombre_ciclo:'Ciclo 2026-B', fecha_inicio:'2026-02-01', fecha_fin:null},
-    {id_ciclo:3, nombre_ciclo:'Ciclo 2025-D', fecha_inicio:'2025-10-01', fecha_fin:'2025-12-20'}
-  ],
-  tiposAlimento: [
-    {id_tipo_alimento:1, nombre_alimento:'Iniciador',   descripcion_alimento:'0-21 días'},
-    {id_tipo_alimento:2, nombre_alimento:'Engorde',     descripcion_alimento:'22-42 días'},
-    {id_tipo_alimento:3, nombre_alimento:'Finalizador', descripcion_alimento:'43+ días'}
-  ],
-  tiposMed: [
-    {id_tipo_medicamento:1, nombre:'Newcastle Multivalente', descripcion:'Vacuna'},
-    {id_tipo_medicamento:2, nombre:'Vitamina A-D-E',         descripcion:'Vitaminas'},
-    {id_tipo_medicamento:3, nombre:'Coccidiostato',          descripcion:'Antiparasitario'}
-  ],
-  tiposMuerte: [
-    {id_tipo_muerte:1, nombre:'Aplastamiento',    descripcion:'Manejo'},
-    {id_tipo_muerte:2, nombre:'Respiratorio',     descripcion:'Enfermedad'},
-    {id_tipo_muerte:3, nombre:'Síndrome Ascitis', descripcion:'Metabólica'},
-    {id_tipo_muerte:4, nombre:'Calor',            descripcion:'Ambiental'}
-  ],
-  usuarios: [
-    {id_usuario:1, nombre:'Juan',   apellido:'Díaz',     rol:'admin',    fecha_registro:'2025-01-01'},
-    {id_usuario:2, nombre:'Carlos', apellido:'Martínez', rol:'operador', fecha_registro:'2025-03-15'}
-  ],
-  unidades: [
-    {id_unidad:1, nombre_unidad:'kg'},
-    {id_unidad:2, nombre_unidad:'litros'},
-    {id_unidad:3, nombre_unidad:'dosis'},
-    {id_unidad:4, nombre_unidad:'gramos'}
-  ],
-  stockAlimento: [
-    {id_tipo_alimento:1, nombre_alimento:'Iniciador',   cantidad:2100},
-    {id_tipo_alimento:2, nombre_alimento:'Engorde',     cantidad:8300},
-    {id_tipo_alimento:3, nombre_alimento:'Finalizador', cantidad:8000}
-  ],
-  stockMed: [
-    {id_tipo_medicamento:1, nombre:'Newcastle Multivalente', cantidad_actual:450, nombre_unidad:'dosis'},
-    {id_tipo_medicamento:2, nombre:'Vitamina A-D-E',         cantidad_actual:2,   nombre_unidad:'litros'},
-    {id_tipo_medicamento:3, nombre:'Coccidiostato',          cantidad_actual:1,   nombre_unidad:'kg'}
-  ],
-  ingAlimento: [
-    {id_ing_alimento:1, nombre_alimento:'Engorde',   cantidad:5000, fecha_ingreso:'2026-03-19', valor_unitario:1.8, valor_total:9000},
-    {id_ing_alimento:2, nombre_alimento:'Iniciador', cantidad:2000, fecha_ingreso:'2026-03-10', valor_unitario:2.1, valor_total:4200}
-  ],
-  ingMed: [
-    {id_ing_medicamento:1, nombre:'Newcastle Multivalente', cantidad:500, nombre_unidad:'dosis', fecha_ingreso:'2026-02-20', valor_unitario:800, valor_total:400000}
-  ],
-  mortalidad: [
-    {id_mortalidad:1, id_ciclo:1, id_galpon:2, nombre_tipo:'Síndrome Ascitis', fecha_muerte:'2026-03-19', cantidad_muertos:18, causa:'Baja ventilación'},
-    {id_mortalidad:2, id_ciclo:1, id_galpon:1, nombre_tipo:'Aplastamiento',    fecha_muerte:'2026-03-18', cantidad_muertos:12, causa:''},
-    {id_mortalidad:3, id_ciclo:2, id_galpon:4, nombre_tipo:'Respiratorio',     fecha_muerte:'2026-03-17', cantidad_muertos:9,  causa:''},
-    {id_mortalidad:4, id_ciclo:1, id_galpon:2, nombre_tipo:'Respiratorio',     fecha_muerte:'2026-03-16', cantidad_muertos:22, causa:'Colibacilossis'},
-    {id_mortalidad:5, id_ciclo:1, id_galpon:1, nombre_tipo:'Calor',            fecha_muerte:'2026-03-15', cantidad_muertos:7,  causa:''},
-    {id_mortalidad:6, id_ciclo:2, id_galpon:3, nombre_tipo:'Aplastamiento',    fecha_muerte:'2026-03-14', cantidad_muertos:11, causa:''},
-    {id_mortalidad:7, id_ciclo:1, id_galpon:2, nombre_tipo:'Síndrome Ascitis', fecha_muerte:'2026-03-13', cantidad_muertos:14, causa:''}
-  ],
-  admAlimento: [
-    {id_admi_alimento:1, nombre_alimento:'Engorde',   nombre_galpon:'Galpón Norte 1', nombre_ciclo:'Ciclo 2026-A', cantidad_utilizada:800, fecha_alimentacion:'2026-03-19', nombre_usuario:'Juan Díaz'},
-    {id_admi_alimento:2, nombre_alimento:'Iniciador', nombre_galpon:'Galpón Sur 2',   nombre_ciclo:'Ciclo 2026-B', cantidad_utilizada:400, fecha_alimentacion:'2026-03-18', nombre_usuario:'Carlos Martínez'}
-  ],
-  admMed: [
-    {id_admi_medicamento:1, nombre_med:'Newcastle Multivalente', nombre_galpon:'Galpón Norte 1', nombre_ciclo:'Ciclo 2026-A', cantidad_utilizada:120, nombre_unidad:'dosis', fecha_medicacion:'2026-03-15', nombre_usuario:'Juan Díaz'}
-  ]
-};
+
 
 // Intenta GET a la API; si falla, devuelve datos demo
 async function tryGet(path, demoKey) {
-  try { return await GET(path); }
-  catch { return DEMO[demoKey] || []; }
+  try {
+    const result = await GET(path);
+
+    // 1. Si es un array directo (como en tipos-medicamento)
+    if (Array.isArray(result)) return result;
+
+    // 2. Si es un objeto de paginación (tiene la propiedad .content)
+    if (result && Array.isArray(result.content)) {
+      return result.content;
+    }
+
+    // 3. Si no es ninguno, usa los datos demo
+    return DEMO[demoKey] || [];
+  } catch (err) {
+    console.error(`Error cargando ${path}:`, err);
+    return DEMO[demoKey] || [];
+  }
 }
 
 // ─── AUTENTICACIÓN ────────────────────────────────────────
-async function doLogin(event) {
-  if (event) event.preventDefault();
-  
+function doLogin() {
+  const url  = document.getElementById('login-url').value.trim();
   const user = document.getElementById('login-user').value.trim();
-  
-  // Validación básica
-  if (!user) {
-    toast('⚠️', 'Error', 'Por favor ingresa tu usuario');
-    return;
-  }
+  if (url) { S.apiBase = url; localStorage.setItem('sayfer_url', url); }
 
-  // Esconder login y mostrar loading
-  document.getElementById('login-screen').style.display = 'none';
-  showLoadingScreen();
-  
-  // Simular pasos de carga
-  updateLoadingStatus(1, 'Conectando con la API');
-  await sleep(350);
-  
-  updateLoadingStatus(2, 'Cargando datos del sistema');
-  await sleep(350);
-  
-  // Crear usuario
   const fakeUser = { nombre: user, apellido: '', rol: 'admin', id_usuario: 1 };
   S.user = fakeUser;
   localStorage.setItem('sayfer_user', JSON.stringify(fakeUser));
-  
-  // Actualizar interfaz
+
+  document.getElementById('login-screen').style.display = 'none';
   document.getElementById('top-username').textContent = user;
   document.getElementById('top-avatar').textContent   = user[0]?.toUpperCase() || 'U';
+  document.getElementById('cfg-url').value = S.apiBase;
 
-  updateLoadingStatus(3, 'Finalizando');
-  await sleep(250);
-  
-  // Cargar datos
   pingApi();
-  await loadAll();
-  
-  // Cerrar pantalla de carga
-  hideLoadingScreen();
-
-  // Mostrar dashboard
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-dashboard')?.classList.add('active');
-  document.getElementById('page-label').textContent = 'Dashboard';
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelector('.nav-item[onclick*="dashboard"]')?.classList.add('active');
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function showLoadingScreen() {
-  const screen = document.getElementById('loading-screen');
-  if (screen) {
-    screen.style.display = 'flex';
-    // Forzar reflow para activar animaciones
-    void screen.offsetHeight;
-  }
-}
-
-function hideLoadingScreen() {
-  const screen = document.getElementById('loading-screen');
-  if (screen) {
-    screen.style.opacity = '0';
-    screen.style.transition = 'opacity 0.5s ease';
-    setTimeout(() => {
-      screen.style.display = 'none';
-      screen.style.opacity = '1';
-    }, 500);
-  }
-}
-
-function updateLoadingStatus(step, message) {
-  // Actualizar subtítulo
-  const subtitle = document.getElementById('loading-subtitle');
-  if (subtitle) subtitle.textContent = message;
-  
-  // Actualizar estado de items
-  for (let i = 1; i <= 3; i++) {
-    const statusEl = document.getElementById(`status-${i}`);
-    if (!statusEl) continue;
-    
-    if (i < step) {
-      // Completado
-      statusEl.classList.remove('active');
-      statusEl.classList.add('complete');
-      statusEl.style.opacity = '1';
-    } else if (i === step) {
-      // Activo
-      statusEl.classList.add('active');
-      statusEl.classList.remove('complete');
-      statusEl.style.opacity = '1';
-    } else {
-      // Pendiente
-      statusEl.classList.remove('active', 'complete');
-      statusEl.style.opacity = '0.4';
-    }
-  }
-  
-  // Actualizar barra de progreso
-  const progressFill = document.getElementById('progress-fill');
-  if (progressFill) {
-    const percent = (step / 3) * 100;
-    progressFill.style.width = percent + '%';
-  }
-}
-
-function confirmLogout() {
-  openModal('modal-confirm-logout');
+  loadAll();
 }
 
 function doLogout() {
@@ -267,7 +109,6 @@ function go(tabId, el, label) {
 
   // Carga lazy por sección
   const loaders = {
-    'perfil':          loadPerfil,
     'dashboard':       loadDashboard,
     'galpones':        loadGalpones,
     'ciclos':          loadCiclos,
@@ -293,7 +134,7 @@ function closeModal(id) {
 
 // Cierra modal al hacer clic fuera
 document.querySelectorAll('.modal-overlay').forEach(m =>
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
 );
 
 // Rellena los <select> de cada modal con datos del caché
@@ -305,7 +146,7 @@ function populateSelects(modalId) {
   };
 
   const { galpones: g, ciclos: c, tiposAlimento: ta,
-          tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
+    tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
 
   if (modalId === 'modal-mortalidad') {
     sel('mo-ciclo',      c,   'id_ciclo',          x => `${x.id_ciclo} — ${x.nombre_ciclo||'Sin nombre'}`);
@@ -319,7 +160,7 @@ function populateSelects(modalId) {
   }
   if (modalId === 'modal-ing-med') {
     sel('im-tipo',   tm, 'id_tipo_medicamento', x => x.nombre);
-    sel('im-unidad', un, 'id_unidad',           x => x.nombre_unidad);
+    sel('im-unidad', un, 'id',           x => x.nombre);
     document.getElementById('im-fecha').value = today();
   }
   if (modalId === 'modal-adm-alimento') {
@@ -367,7 +208,7 @@ async function pingApi() {
   dot.className = 'dot pulsing';
   lbl.textContent = 'Conectando...';
   try {
-    await GET('/galpon'); // ping — endpoint más simple y siempre disponible
+    const probe = await fetch(S.apiBase + '/galpon', { headers: headers(), signal: AbortSignal.timeout(4000) }); if(!probe.ok) throw new Error('fail'); // Ajustar al endpoint de tu Spring Boot
     dot.className   = 'dot pulsing';
     lbl.textContent = 'API OK';
     toast('✅', 'Conexión exitosa', S.apiBase);
@@ -399,7 +240,7 @@ function renderConfigStatus() {
 function filterTbl(inp, tbodyId) {
   const q = inp.value.toLowerCase();
   document.querySelectorAll(`#${tbodyId} tr`).forEach(tr =>
-    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none'
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none'
   );
 }
 
@@ -407,100 +248,16 @@ function filterTbl(inp, tbodyId) {
 async function loadAll() {
   // Carga datos de referencia en paralelo y los guarda en caché
   [S.galpones, S.ciclos, S.tiposAlimento, S.tiposMed,
-   S.tiposMuerte, S.usuarios, S.unidades] = await Promise.all([
-    tryGet('/galpon',           'galpones'),
-    tryGet('/ciclo-produccion', 'ciclos'),
-    tryGet('/tipo-alimento',    'tiposAlimento'),
-    tryGet('/tipo-medicamento', 'tiposMed'),
-    tryGet('/tipo-muerte',      'tiposMuerte'),
-    tryGet('/usuario',          'usuarios'),
-    tryGet('/unidad-medida',    'unidades'),
+    S.tiposMuerte, S.usuarios, S.unidades] = await Promise.all([
+    tryGet('/galpon',        'galpones'),
+    tryGet('/ciclo-produccion',          'ciclos'),
+    tryGet('/tipo-alimento',  'tiposAlimento'),
+    tryGet('/tipo-medicamento','tiposMed'),
+    tryGet('/tipo-muerte',    'tiposMuerte'),
+    tryGet('/usuario',        'usuarios'),
+    tryGet('/unidad-medida', 'unidades'),
   ]);
   loadDashboard();
-}
-
-// ─── PERFIL ───────────────────────────────────────────────
-function loadPerfil() {
-  const user = S.user;
-  if (!user) return;
-
-  // Llenar campos editables
-  document.getElementById('perfil-edit-nombre').value = user.nombre || '';
-  document.getElementById('perfil-edit-apellido').value = user.apellido || '';
-  document.getElementById('perfil-edit-email').value = user.email || '';
-  document.getElementById('perfil-edit-telefono').value = user.telefono || '';
-  document.getElementById('perfil-edit-user').value = user.nombre || '';
-  document.getElementById('perfil-edit-role').value = user.rol || '';
-
-  // Cargar tema guardado
-  const savedTheme = localStorage.getItem('sayfer_theme') || 'system';
-  updateThemeUI(savedTheme);
-}
-
-function savePerfil() {
-  const nombre = document.getElementById('perfil-edit-nombre').value.trim();
-  const apellido = document.getElementById('perfil-edit-apellido').value.trim();
-  const email = document.getElementById('perfil-edit-email').value.trim();
-  const telefono = document.getElementById('perfil-edit-telefono').value.trim();
-
-  if (!nombre) {
-    toast('⚠️', 'Validación', 'El nombre es obligatorio');
-    return;
-  }
-
-  // Actualizar datos del usuario
-  S.user.nombre = nombre;
-  S.user.apellido = apellido;
-  S.user.email = email;
-  S.user.telefono = telefono;
-  localStorage.setItem('sayfer_user', JSON.stringify(S.user));
-
-  // Actualizar nombre en topbar
-  document.getElementById('top-username').textContent = nombre;
-  document.getElementById('top-avatar').textContent = nombre[0]?.toUpperCase() || 'U';
-
-  toast('✓', 'Éxito', 'Perfil actualizado correctamente');
-}
-
-function cancelarEditPerfil() {
-  loadPerfil();
-}
-
-function setTheme(theme) {
-  localStorage.setItem('sayfer_theme', theme);
-  applyTheme(theme);
-  updateThemeUI(theme);
-  toast('✓', 'Tema', `Tema cambiado a ${theme === 'light' ? 'claro' : theme === 'dark' ? 'oscuro' : 'del sistema'}`);
-}
-
-function applyTheme(theme) {
-  const root = document.documentElement;
-  
-  if (theme === 'system') {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    theme = isDark ? 'dark' : 'light';
-  }
-
-  if (theme === 'dark') {
-    root.style.colorScheme = 'dark';
-    root.setAttribute('data-theme', 'dark');
-  } else {
-    root.style.colorScheme = 'light';
-    root.removeAttribute('data-theme');
-  }
-}
-
-function updateThemeUI(theme) {
-  document.querySelectorAll('.theme-option').forEach(btn => {
-    btn.style.borderColor = 'var(--border)';
-    btn.style.background = 'var(--surface)';
-  });
-  
-  const activeBtn = document.getElementById(`theme-${theme}`);
-  if (activeBtn) {
-    activeBtn.style.borderColor = 'var(--accent)';
-    activeBtn.style.background = 'var(--accent-lt)';
-  }
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────
@@ -528,8 +285,8 @@ async function loadDashboard() {
       <td class="mono">${c.fecha_inicio}</td>
       <td class="mono">${c.fecha_fin || '—'}</td>
       <td>${c.fecha_fin
-        ? '<span class="badge badge-gray">Cerrado</span>'
-        : '<span class="badge badge-green">● Activo</span>'}</td>
+      ? '<span class="badge badge-gray">Cerrado</span>'
+      : '<span class="badge badge-green">● Activo</span>'}</td>
     </tr>`).join('');
 
   // Gráfica mortalidad últimos 7 días
@@ -551,6 +308,7 @@ async function loadDashboard() {
 
   // Stock alimento
   const stock = await tryGet('/stock-alimento', 'stockAlimento');
+  const maxS  = Math.max(...stock.map(s => +s.cantidad), 1);
   document.getElementById('dash-stock-alimento').innerHTML = stock.map(s => `
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
@@ -571,14 +329,14 @@ async function loadDashboard() {
   });
   const medBajo = (await tryGet('/stock-medicamento','stockMed')).filter(m => +m.cantidad_actual < 5);
   medBajo.forEach(m =>
-    alertas.push(`Medicamento bajo: <b>${m.nombre}</b> — ${m.cantidad_actual} ${m.nombre_unidad || ''}`)
+      alertas.push(`Medicamento bajo: <b>${m.nombre}</b> — ${m.cantidad_actual} ${m.nombre_unidad || ''}`)
   );
   const iconAlerta = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round">
     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>`;
   document.getElementById('dash-alerts').innerHTML = alertas
-    .map(a => `<div class="alert alert-warn">${iconAlerta}<div>${a}</div></div>`).join('');
+      .map(a => `<div class="alert alert-warn">${iconAlerta}<div>${a}</div></div>`).join('');
 }
 
 // ─── GALPONES ─────────────────────────────────────────────
@@ -653,10 +411,9 @@ async function loadIngAlimento() {
       <td>${r.nombre_alimento || r.id_tipo_alimento}</td>
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
       <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.valor_unitario != null ? '$' + r.valor_unitario.toLocaleString() : '—'}</td>
       <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
     </tr>`).join('') ||
-    '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── MEDICAMENTOS ─────────────────────────────────────────
@@ -692,15 +449,14 @@ async function loadIngMed() {
   const data = await tryGet('/ing-medicamento', 'ingMed');
   document.getElementById('ing-med-tbody').innerHTML = data.map(r => `
     <tr>
-      <td class="mono">${r.id_ing_medicamento}</td>
-      <td>${r.nombre || r.id_tipo_medicamento}</td>
+      <td class="mono">${r.ing_medicamento}</td>
+      <td>${r.id_tipo_medicamento}</td>
       <td class="mono">${+r.cantidad}</td>
-      <td class="mono">${r.nombre_unidad || r.id_unidad || '—'}</td>
+      <td class="mono">${r.unidad || r.id_unidad || '—'}</td>
       <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.valor_unitario != null ? '$' + r.valor_unitario.toLocaleString() : '—'}</td>
       <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
     </tr>`).join('') ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── MORTALIDAD ───────────────────────────────────────────
@@ -731,7 +487,7 @@ async function loadMortalidad() {
       <td style="color:var(--red);font-weight:700">${m.cantidad_muertos}</td>
       <td style="color:var(--text3)">${m.causa || '—'}</td>
     </tr>`).join('') ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 
   // Gráfica de barras por causa
   const byCausa = {};
@@ -751,6 +507,7 @@ async function loadMortalidad() {
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
   const data = await tryGet('/admi-alimento', 'admAlimento');
+
   document.getElementById('adm-alimento-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_admi_alimento}</td>
@@ -761,7 +518,7 @@ async function loadAdmAlimento() {
       <td class="mono">${r.fecha_alimentacion}</td>
       <td>${r.nombre_usuario   || r.id_usuario}</td>
     </tr>`).join('') ||
-    '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── ADMINISTRACIÓN DE MEDICAMENTOS ──────────────────────
@@ -778,7 +535,7 @@ async function loadAdmMed() {
       <td class="mono">${r.fecha_medicacion}</td>
       <td>${r.nombre_usuario   || r.id_usuario}</td>
     </tr>`).join('') ||
-    '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── USUARIOS ─────────────────────────────────────────────
@@ -798,8 +555,8 @@ async function loadUsuarios() {
 // ─── UNIDADES DE MEDIDA ───────────────────────────────────
 async function loadUnidades() {
   S.unidades = await tryGet('/unidad-medida', 'unidades');
-  document.getElementById('unidades-tbody').innerHTML = S.unidades.map(u => `
-    <tr><td class="mono">${u.id_unidad}</td><td>${u.nombre_unidad}</td></tr>`).join('');
+  document.getElementById('unidad-tbody').innerHTML = S.unidades.map(u => `
+    <tr><td class="mono">${u.id}</td><td>${u.nombre}</td></tr>`).join('');
 }
 
 // ─── ENVÍO DE FORMULARIOS (POST) ──────────────────────────
@@ -808,7 +565,7 @@ async function doPost(path, payload, modalId, reloadFn, label) {
     await POST(path, payload);
     toast('✅', label + ' registrado', path);
   } catch {
-    toast('⚠️', label + ' (modo demo)', 'No se pudo conectar al API', 't-warn');
+    toast('⚠️', label + 'No se pudo conectar al API', 't-warn');
   }
   closeModal(modalId);
   reloadFn?.();
@@ -819,85 +576,87 @@ function v(id) { return document.getElementById(id)?.value || ''; }
 
 function postGalpon() {
   doPost('/galpon',
-    { nombre: v('g-nombre'), capacidad: +v('g-capacidad') },
-    'modal-galpon', loadGalpones, 'Galpón');
+      { nombre: v('g-nombre'), capacidad: +v('g-capacidad') },
+      'modal-galpon', loadGalpones, 'Galpón');
 }
 function postCiclo() {
   doPost('/ciclo-produccion',
-    { nombre_ciclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
-    'modal-ciclo', loadCiclos, 'Ciclo');
+      { nombreCiclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
+      'modal-ciclo', loadCiclos, 'Ciclo');
 }
 function postTipoAlimento() {
   doPost('/tipo-alimento',
-    { nombre_alimento: v('ta-nombre'), descripcion_alimento: v('ta-desc') },
-    'modal-tipo-alimento', () => { loadTiposAlimento(); loadStockAlimento(); }, 'Tipo Alimento');
+      { nombre_alimento: v('ta-nombre'), descripcion_alimento: v('ta-desc') },
+      'modal-tipo-alimento', () => { loadTiposAlimento(); loadStockAlimento(); }, 'Tipo Alimento');
 }
 function postIngAlimento() {
   doPost('/ing-alimento',
-    { id_tipo_alimento: +v('ia-tipo'), cantidad: +v('ia-cantidad'),
-      fecha_ingreso: v('ia-fecha'), valor_unitario: +v('ia-vunit'), valor_total: +v('ia-vtotal') },
-    'modal-ing-alimento', () => { loadIngAlimento(); loadStockAlimento(); }, 'Ingreso Alimento');
+      { id_tipo_alimento: +v('ia-tipo'), cantidad: +v('ia-cantidad'),
+        fecha_ingreso: v('ia-fecha'), valor_total: +v('ia-vtotal') },
+      'modal-ing-alimento', () => { loadIngAlimento(); loadStockAlimento(); }, 'Ingreso Alimento');
 }
 function postTipoMed() {
   doPost('/tipo-medicamento',
-    { nombre: v('tm-nombre'), descripcion: v('tm-desc') },
-    'modal-tipo-med', loadTiposMed, 'Tipo Medicamento');
+      { nombre: v('tm-nombre'), descripcion_medi: v('tm-desc') },
+      'modal-tipo-med', loadTiposMed, 'Tipo Medicamento');
 }
 function postIngMed() {
   doPost('/ing-medicamento',
-    { id_tipo_medicamento: +v('im-tipo'), cantidad: +v('im-cantidad'),
-      id_unidad: +v('im-unidad'), fecha_ingreso: v('im-fecha'),
-      valor_unitario: +v('im-vunit'), valor_total: +v('im-vtotal') },
-    'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
+      {
+        id_tipo_medicamento: { id_tipo_medicamento: +v('im-tipo') },
+        cantidad:            +v('im-cantidad'),
+        id_unidad:           { id: +v('im-unidad') },
+        fecha_ingreso:       v('im-fecha'),
+        valor_total:         +v('im-vtotal')
+      },
+      //asd
+      'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
 }
 function postTipoMuerte() {
   doPost('/tipo-muerte',
-    { nombre: v('tmu-nombre'), descripcion: v('tmu-desc') },
-    'modal-tipo-muerte', loadTiposMuerte, 'Tipo Muerte');
+      { nombre: v('tmu-nombre'), descripcion: v('tmu-desc') },
+      'modal-tipo-muerte', loadTiposMuerte, 'Tipo Muerte');
 }
 function postMortalidad() {
   doPost('/mortalidad',
-    { id_ciclo: +v('mo-ciclo'), id_galpon: +v('mo-galpon'),
-      id_tipo_muerte: +v('mo-tipo-muerte'), fecha_muerte: v('mo-fecha'),
-      cantidad_muertos: +v('mo-cantidad'), causa: v('mo-causa') },
-    'modal-mortalidad', loadMortalidad, 'Mortalidad');
+      { id_ciclo: +v('mo-ciclo'), id_galpon: +v('mo-galpon'),
+        id_tipo_muerte: +v('mo-tipo-muerte'), fecha_muerte: v('mo-fecha'),
+        cantidad_muertos: +v('mo-cantidad'), causa: v('mo-causa') },
+      'modal-mortalidad', loadMortalidad, 'Mortalidad');
 }
 function postAdmAlimento() {
   doPost('/admi-alimento',
-    { id_tipo_alimento: +v('aa-tipo'), id_galpon: +v('aa-galpon'),
-      id_ciclo: +v('aa-ciclo'), id_usuario: +v('aa-usuario'),
-      cantidad_utilizada: +v('aa-cantidad'), fecha_alimentacion: v('aa-fecha') },
-    'modal-adm-alimento', loadAdmAlimento, 'Alimentación');
+      { id_tipo_alimento: +v('aa-tipo'), id_galpon: +v('aa-galpon'),
+        id_ciclo: +v('aa-ciclo'), id_usuario: +v('aa-usuario'),
+        cantidad_utilizada: +v('aa-cantidad'), fecha_alimentacion: v('aa-fecha') },
+      'modal-adm-alimento', loadAdmAlimento, 'Alimentación');
 }
 function postAdmMed() {
   doPost('/admi-medicamento',
-    { id_tipo_medicamento: +v('am-tipo'), id_galpon: +v('am-galpon'),
-      id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'),
-      id_unidad: +v('am-unidad'), cantidad_utilizada: +v('am-cantidad'),
-      fecha_medicacion: v('am-fecha') },
-    'modal-adm-med', loadAdmMed, 'Medicación');
+      { id_tipo_medicamento: +v('am-tipo'), id_galpon: +v('am-galpon'),
+        id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'),
+        id_unidad: +v('am-unidad'), cantidad_utilizada: +v('am-cantidad'),
+        fecha_medicacion: v('am-fecha') },
+      'modal-adm-med', loadAdmMed, 'Medicación');
 }
 function postUsuario() {
   doPost('/usuario',
-    { nombre: v('u-nombre'), apellido: v('u-apellido'), fecha_registro: v('u-fecha'), rol: v('u-rol') },
-    'modal-usuario', loadUsuarios, 'Usuario');
+      {cedula: +v('u-cedula'), nombre: v('u-nombre'), apellido: v('u-apellido'), fecha_registro: v('u-fecha'),correo: v('u-correo'), password: v('u-contrasena'), rol: v('u-rol') },
+      'modal-usuario', loadUsuarios, 'Usuario');
 }
 function postUnidad() {
   doPost('/unidad-medida',
-    { nombre_unidad: v('un-nombre') },
-    'modal-unidad', loadUnidades, 'Unidad');
+      { nombre: v('un-nombre') },
+      'modal-unidad', loadUnidades, 'Unidad');
 }
 
 // ─── INICIALIZACIÓN ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Cargar tema guardado
-  const savedTheme = localStorage.getItem('sayfer_theme') || 'system';
-  applyTheme(savedTheme);
-
   if (S.user) {
     document.getElementById('login-screen').style.display  = 'none';
     document.getElementById('top-username').textContent    = S.user.nombre;
     document.getElementById('top-avatar').textContent      = S.user.nombre[0]?.toUpperCase() || 'U';
+    document.getElementById('cfg-url').value               = S.apiBase;
     pingApi();
     loadAll();
   }

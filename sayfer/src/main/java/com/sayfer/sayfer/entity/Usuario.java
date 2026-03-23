@@ -34,6 +34,9 @@ public class Usuario {
     @Column(name = "correo", length = 50,nullable = false)
     private String correo;
 
-    @Column(name = "password",length = 200, nullable = false)
+    @Column(name = "password",length = 200)
     private String password;
+
+    @Column(name = "estado", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean estado = true;
 }

@@ -1,5 +1,6 @@
 package com.sayfer.sayfer.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -19,4 +20,5 @@ public class UsuarioDTO {
     private String correo;
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
+    private Boolean estado;
 }

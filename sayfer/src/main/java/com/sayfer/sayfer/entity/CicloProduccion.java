@@ -24,5 +24,5 @@ public class CicloProduccion {
 
     @Column(name = "nombre_ciclo", length = 20, nullable = false)
     private String nombreCiclo;
-
+//es la nomenglatura de ciclo 2025/4
 }

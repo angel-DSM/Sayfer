@@ -15,7 +15,6 @@ public class IngAlimentoMapper extends GenericMapper<IngAlimento, IngAlimentoDTO
                 .id_IngAlimento(entity.getId_IngAlimento())
                 .cantidad(entity.getCantidad())
                 .fecha_ingreso(entity.getFecha_ingreso())
-                .valor_unitario(entity.getValor_unitario())
                 .valor_total(entity.getValor_total())
                 .build();
     }
@@ -29,7 +28,6 @@ public class IngAlimentoMapper extends GenericMapper<IngAlimento, IngAlimentoDTO
                 .id_IngAlimento(dto.getId_IngAlimento())
                 .cantidad(dto.getCantidad())
                 .fecha_ingreso(dto.getFecha_ingreso())
-                .valor_unitario(dto.getValor_unitario())
                 .valor_total(dto.getValor_total())
                 .build();
     }

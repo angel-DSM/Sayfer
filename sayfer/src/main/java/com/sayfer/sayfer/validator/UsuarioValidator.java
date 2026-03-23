@@ -1,6 +1,5 @@
 package com.sayfer.sayfer.validator;
 
-import com.sayfer.sayfer.dto.StockAlimentoDTO;
 import com.sayfer.sayfer.dto.UsuarioDTO;
 import com.sayfer.sayfer.exeption.ValidateException;
 

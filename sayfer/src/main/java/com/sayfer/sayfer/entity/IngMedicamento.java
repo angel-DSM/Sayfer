@@ -28,9 +28,6 @@ public class IngMedicamento {
     @Column(name = "fecha_ingreso", nullable = false)
     private LocalDate fecha_ingreso;
 
-    @Column(name = "valor_unitario", precision = 30, scale = 2, nullable = false)
-    private BigDecimal valor_unitario;
-
     @Column(name = "valor_total", precision = 30, scale = 2, nullable = false)
     private  BigDecimal valor_total;
 
