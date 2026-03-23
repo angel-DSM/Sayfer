@@ -51,13 +51,21 @@ public class UsuarioServiceImplementation implements UsuarioService {
     @Override
     public UsuarioDTO update(Long id, UsuarioDTO obj) {
         UsuarioValidator.validate(obj);
-        if (repository.existsById(id)){
-            Usuario entidad = mapper.toEntity(obj);
-            entidad.setCedula(id);
-            Usuario update = repository.save(entidad);
-            return mapper.toDTO(update);
+
+        Usuario existente = repository.findById(id)
+                .orElseThrow(() -> new NoDataFoundException(
+                        "No se puede actualizar: No existe el usuario con ID " + id));
+
+        Usuario entidad = mapper.toEntity(obj);
+        entidad.setCedula(id);
+
+        // Si no se envió password, conservar el que ya está en la BD
+        if (obj.getPassword() == null || obj.getPassword().isBlank()) {
+            entidad.setPassword(existente.getPassword());
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el usuario con ID" + id);
+
+        Usuario actualizado = repository.save(entidad);
+        return mapper.toDTO(actualizado);
     }
 
     @Override

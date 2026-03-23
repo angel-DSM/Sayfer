@@ -5,7 +5,10 @@
 ═══════════════════════════════════════════════════════════ */
 
 // ─── ESTADO GLOBAL ────────────────────────────────────────
+localStorage.setItem('sayfer_rol_actual', 'admin');
+let _editandoUsuario = null;
 const S = {
+
   apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8090',
   token:   localStorage.getItem('sayfer_token') || '',
   user:    JSON.parse(localStorage.getItem('sayfer_user') || 'null'),
@@ -50,7 +53,11 @@ async function POST(path, body) {
   return r.json().catch(() => ({}));
 }
 
-
+const PUT = (path, body) => fetch(S.apiBase + path, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body)
+}).then(r => r.json());
 
 // Intenta GET a la API; si falla, devuelve datos demo
 async function tryGet(path, demoKey) {
@@ -75,6 +82,7 @@ async function tryGet(path, demoKey) {
 
 // ─── AUTENTICACIÓN ────────────────────────────────────────
 function doLogin() {
+  localStorage.setItem('sayfer_rol_actual', S.user?.rol || 'empleado');
   const url  = document.getElementById('login-url').value.trim();
   const user = document.getElementById('login-user').value.trim();
   if (url) { S.apiBase = url; localStorage.setItem('sayfer_url', url); }
@@ -407,8 +415,8 @@ async function loadIngAlimento() {
   const data = await tryGet('/ing-alimento', 'ingAlimento');
   document.getElementById('ing-alimento-tbody').innerHTML = data.map(r => `
     <tr>
-      <td class="mono">${r.id_ing_alimento}</td>
-      <td>${r.nombre_alimento || r.id_tipo_alimento}</td>
+      <td class="mono">${r.id_IngAlimento}</td>
+      <td>${r.id_tipo_alimento?.nombre_alimento || '—'}</td>
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
       <td class="mono">${r.fecha_ingreso}</td>
       <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
@@ -423,7 +431,7 @@ async function loadTiposMed() {
     <tr>
       <td class="mono">${t.id_tipo_medicamento}</td>
       <td>${t.nombre}</td>
-      <td style="color:var(--text3)">${t.descripcion || '—'}</td>
+      <td style="color:var(--text3)">${t.descripcion_medi || '—'}</td>
     </tr>`).join('');
 }
 
@@ -450,9 +458,9 @@ async function loadIngMed() {
   document.getElementById('ing-med-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.ing_medicamento}</td>
-      <td>${r.id_tipo_medicamento}</td>
+      <td>${r.id_tipo_medicamento?.nombre || '—'}</td>
       <td class="mono">${+r.cantidad}</td>
-      <td class="mono">${r.unidad || r.id_unidad || '—'}</td>
+      <td class="mono">${r.id_unidad?.nombre || '—'}</td>
       <td class="mono">${r.fecha_ingreso}</td>
       <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
     </tr>`).join('') ||
@@ -541,17 +549,50 @@ async function loadAdmMed() {
 // ─── USUARIOS ─────────────────────────────────────────────
 async function loadUsuarios() {
   S.usuarios = await tryGet('/usuario', 'usuarios');
-  const rolBadge = r => r === 'admin' ? 'badge-yellow' : r === 'veterinario' ? 'badge-blue' : 'badge-gray';
+  const rolBadge   = r => r === 'admin' ? 'badge-yellow' : r === 'veterinario' ? 'badge-blue' : 'badge-gray';
+  const estadoBadge = e => e ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-gray">Inactivo</span>';
+  const esAdmin = S.user?.rol === 'admin';
+
   document.getElementById('usuarios-tbody').innerHTML = S.usuarios.map(u => `
     <tr>
-      <td class="mono">${u.id_usuario}</td>
+      <td class="mono">${u.cedula}</td>
       <td>${u.nombre}</td>
       <td>${u.apellido}</td>
       <td><span class="badge ${rolBadge(u.rol)}">${u.rol}</span></td>
       <td class="mono">${u.fecha_registro}</td>
+      <td>${estadoBadge(u.estado)}</td>
+      <td>${esAdmin ? `<button class="btn-icon" onclick="prepareEditUsuario(${u.cedula})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('');
 }
 
+function prepareEditUsuario(cedula) {
+  const u = S.usuarios.find(x => x.cedula === cedula);
+  if (!u) return;
+
+  _editandoUsuario = cedula;
+
+  // Cambiar título y modo de cédula
+  document.getElementById('modal-usuario-titulo').textContent = 'Editar Usuario';
+  const inputCedula = document.getElementById('u-cedula');
+  inputCedula.value    = u.cedula;
+  inputCedula.readOnly = true;
+  inputCedula.style.background = 'var(--bg2)';
+
+  // Rellenar campos
+  document.getElementById('u-nombre').value    = u.nombre;
+  document.getElementById('u-apellido').value  = u.apellido;
+  document.getElementById('u-fecha').value     = u.fecha_registro;
+  document.getElementById('u-correo').value    = u.correo || '';
+  document.getElementById('u-contrasena').value = ''; // siempre vacío al editar
+  document.getElementById('u-rol').value       = u.rol;
+  document.getElementById('u-estado').value    = String(u.estado ?? true);
+
+  // Mostrar campo estado y hint de contraseña
+  document.getElementById('u-estado-group').style.display = '';
+  document.getElementById('u-pass-hint').style.display    = '';
+
+  openModal('modal-usuario');
+}
 // ─── UNIDADES DE MEDIDA ───────────────────────────────────
 async function loadUnidades() {
   S.unidades = await tryGet('/unidad-medida', 'unidades');
@@ -569,6 +610,19 @@ async function doPost(path, payload, modalId, reloadFn, label) {
   }
   closeModal(modalId);
   reloadFn?.();
+}
+
+//---- actualizacion de formularios (put)
+
+async function doPut(path, payload, modalId, reloadFn, label) {
+  try {
+    await PUT(path, payload);
+    toast('✅', label + ' actualizado', path);
+  } catch {
+    toast('⚠️', label + ': No se pudo conectar al API', 't-warn');
+  }
+  closeModal(modalId);
+  if (reloadFn) reloadFn();
 }
 
 // Helpers de lectura de inputs
@@ -591,8 +645,8 @@ function postTipoAlimento() {
 }
 function postIngAlimento() {
   doPost('/ing-alimento',
-      { id_tipo_alimento: +v('ia-tipo'), cantidad: +v('ia-cantidad'),
-        fecha_ingreso: v('ia-fecha'), valor_total: +v('ia-vtotal') },
+      { id_tipo_alimento: { id_tipo_alimento: +v('ia-tipo') }, cantidad: +v('ia-cantidad'),
+        fecha_ingreso: v('ia-fecha'), valor_total: +v('ia-vtotal'), },
       'modal-ing-alimento', () => { loadIngAlimento(); loadStockAlimento(); }, 'Ingreso Alimento');
 }
 function postTipoMed() {
@@ -609,7 +663,6 @@ function postIngMed() {
         fecha_ingreso:       v('im-fecha'),
         valor_total:         +v('im-vtotal')
       },
-      //asd
       'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
 }
 function postTipoMuerte() {
@@ -639,10 +692,53 @@ function postAdmMed() {
         fecha_medicacion: v('am-fecha') },
       'modal-adm-med', loadAdmMed, 'Medicación');
 }
+function NewUsuario() {
+  _editandoUsuario = null;
+
+  // Resetear modal a modo "nuevo"
+  document.getElementById('modal-usuario-titulo').textContent = 'Nuevo Usuario';
+  const inputCedula = document.getElementById('u-cedula');
+  inputCedula.value    = '';
+  inputCedula.readOnly = false;
+  inputCedula.style.background = '';
+
+  document.getElementById('u-nombre').value     = '';
+  document.getElementById('u-apellido').value   = '';
+  document.getElementById('u-fecha').value      = today();
+  document.getElementById('u-correo').value     = '';
+  document.getElementById('u-contrasena').value = '';
+  document.getElementById('u-rol').value        = 'operador';
+
+  // Ocultar estado y hint (solo en edición)
+  document.getElementById('u-estado-group').style.display = 'none';
+  document.getElementById('u-pass-hint').style.display    = 'none';
+
+  openModal('modal-usuario');
+}
+
 function postUsuario() {
-  doPost('/usuario',
-      {cedula: +v('u-cedula'), nombre: v('u-nombre'), apellido: v('u-apellido'), fecha_registro: v('u-fecha'),correo: v('u-correo'), password: v('u-contrasena'), rol: v('u-rol') },
-      'modal-usuario', loadUsuarios, 'Usuario');
+  const payload = {
+    cedula:          +v('u-cedula'),
+    nombre:          v('u-nombre'),
+    apellido:        v('u-apellido'),
+    fecha_registro:  v('u-fecha'),
+    correo:          v('u-correo'),
+    rol:             v('u-rol'),
+    estado: true,
+  };
+
+  if (_editandoUsuario) {
+    // Edición: incluir estado, contraseña solo si fue llenada
+    payload.estado = v('u-estado') === 'true';
+    const pass = v('u-contrasena');
+    if (pass) payload.password = pass;
+
+    doPut(`/usuario/${_editandoUsuario}`, payload, 'modal-usuario', loadUsuarios, 'Usuario');
+  } else {
+    // Nuevo: siempre enviar contraseña
+    payload.password = v('u-contrasena');
+    doPost('/usuario', payload, 'modal-usuario', loadUsuarios, 'Usuario');
+  }
 }
 function postUnidad() {
   doPost('/unidad-medida',

@@ -21,11 +21,8 @@ public class UsuarioValidator {
         if(register.getCorreo() == null){
             throw new ValidateException("se requiere un correo");
         }
-        if(register.getPassword() == null){
-            throw new ValidateException("se requiere un alimento");
-        }
         if(register.getFecha_registro() == null){
-            throw new ValidateException("se requiere un alimento");
+            throw new ValidateException("se requiere un fecha de registro");
         }
     }
 }
