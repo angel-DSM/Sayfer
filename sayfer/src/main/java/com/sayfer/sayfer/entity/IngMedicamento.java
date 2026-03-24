@@ -36,6 +36,6 @@ public class IngMedicamento {
     private TipoMedicamento id_tipo_medicamento;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_unidad", nullable = false)
+    @JoinColumn(name = "id_unidad", nullable = true)
     private UnidadMedida id_unidad;
 }

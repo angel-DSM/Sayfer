@@ -2,6 +2,11 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.IngMedicamentoDTO;
 import com.sayfer.sayfer.entity.IngMedicamento;
+import com.sayfer.sayfer.entity.StockMedicamento;
+import com.sayfer.sayfer.entity.TipoMedicamento;
+import com.sayfer.sayfer.repository.StockMedicamentoRepository;
+import java.math.BigDecimal;
+import java.util.Optional;
 import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.mapper.IngMedicamentoMapper;
 import com.sayfer.sayfer.repository.IngMedicamentoRepository;
@@ -21,10 +26,12 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
 
     private final IngMedicamentoRepository repository;
     private final IngMedicamentoMapper mapper;
+    private final StockMedicamentoRepository stockRepository;
 
-    public IngMedicamentoServiceImplementation(IngMedicamentoRepository repository, IngMedicamentoMapper mapper) {
+    public IngMedicamentoServiceImplementation(IngMedicamentoRepository repository, IngMedicamentoMapper mapper, StockMedicamentoRepository stockRepository) {
         this.repository = repository;
         this.mapper = mapper;
+        this.stockRepository = stockRepository;
     }
 
     @Override
@@ -59,26 +66,66 @@ public class IngMedicamentoServiceImplementation implements IngMedicamentoServic
         IngMedicamentoValidator.validate(obj);
         IngMedicamento entidad = mapper.toEntity(obj);
         IngMedicamento guardado = repository.save(entidad);
-        return mapper.toDTO(guardado);
+
+        TipoMedicamento tipo = guardado.getId_tipo_medicamento();
+        if (tipo != null && obj.getCantidad() != null) {
+            BigDecimal cantidadNueva = BigDecimal.valueOf(obj.getCantidad());
+            Optional<StockMedicamento> stockOpt = stockRepository.findByIdTipoMedicamento(tipo);
+            if (stockOpt.isPresent()) {
+                StockMedicamento stock = stockOpt.get();
+                stock.setCantidadActual(stock.getCantidadActual().add(cantidadNueva));
+                stockRepository.save(stock);
+            } else {
+                StockMedicamento nuevoStock = StockMedicamento.builder()
+                        .id_tipo_medicamento(tipo)
+                        .cantidadActual(cantidadNueva)
+                        .id_unidad(guardado.getId_unidad())
+                        .build();
+                stockRepository.save(nuevoStock);
+            }
+        }
+
+        return mapper.toDTO(repository.findById(guardado.getIng_medicamento()).orElse(guardado));
     }
 
     @Override
     public IngMedicamentoDTO update(Integer id, IngMedicamentoDTO obj) {
         IngMedicamentoValidator.validate(obj);
-        repository.findById(id)
+        IngMedicamento anterior = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
                         "No se encontró ingreso de medicamento con id: " + id));
+
+        double cantidadAnterior = anterior.getCantidad();
+        double cantidadNueva = obj.getCantidad() != null ? obj.getCantidad() : 0;
+        double delta = cantidadNueva - cantidadAnterior;
+        if (delta != 0 && anterior.getId_tipo_medicamento() != null) {
+            stockRepository.findByIdTipoMedicamento(anterior.getId_tipo_medicamento()).ifPresent(stock -> {
+                BigDecimal nuevo = stock.getCantidadActual().add(BigDecimal.valueOf(delta));
+                stock.setCantidadActual(nuevo.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : nuevo);
+                stockRepository.save(stock);
+            });
+        }
+
         IngMedicamento entidad = mapper.toEntity(obj);
         entidad.setIng_medicamento(id);
         IngMedicamento actualizado = repository.save(entidad);
-        return mapper.toDTO(actualizado);
+        return mapper.toDTO(repository.findById(actualizado.getIng_medicamento()).orElse(actualizado));
     }
 
     @Override
     public void delete(Integer id) {
-        repository.findById(id)
+        IngMedicamento entidad = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
                         "No se encontró ingreso de medicamento con id: " + id));
+
+        if (entidad.getId_tipo_medicamento() != null) {
+            stockRepository.findByIdTipoMedicamento(entidad.getId_tipo_medicamento()).ifPresent(stock -> {
+                BigDecimal nuevo = stock.getCantidadActual().subtract(BigDecimal.valueOf(entidad.getCantidad()));
+                stock.setCantidadActual(nuevo.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : nuevo);
+                stockRepository.save(stock);
+            });
+        }
+
         repository.deleteById(id);
     }
 }

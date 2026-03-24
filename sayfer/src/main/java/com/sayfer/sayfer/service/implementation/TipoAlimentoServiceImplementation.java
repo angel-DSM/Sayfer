@@ -6,6 +6,7 @@ import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.TipoAlimentoMapper;
 import com.sayfer.sayfer.repository.TipoAlimentoRepository;
+import com.sayfer.sayfer.repository.StockAlimentoRepository;
 import com.sayfer.sayfer.service.TipoAlimentoService;
 import com.sayfer.sayfer.validator.TipoAlimentoValidator;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,12 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
 
     private final TipoAlimentoRepository repository;
     private final TipoAlimentoMapper mapper;
+    private final StockAlimentoRepository stockRepository;
 
-    public TipoAlimentoServiceImplementation(TipoAlimentoRepository repository, TipoAlimentoMapper mapper) {
+    public TipoAlimentoServiceImplementation(TipoAlimentoRepository repository, TipoAlimentoMapper mapper, StockAlimentoRepository stockRepository) {
         this.repository = repository;
         this.mapper = mapper;
+        this.stockRepository = stockRepository;
     }
 
     @Override
@@ -69,7 +72,8 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
     @Override
     public void delete(Integer id) {
         TipoAlimento entidad = repository.findById(id)
-                .orElseThrow(()-> new NoDataFoundException("No existe el TipoAlimento con ID" + id));
+                .orElseThrow(() -> new NoDataFoundException("No existe el TipoAlimento con ID " + id));
+        stockRepository.findByIdTipoAlimento(entidad).ifPresent(stockRepository::delete);
         repository.delete(entidad);
     }
 }

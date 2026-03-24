@@ -350,7 +350,6 @@ function populateSelects(modalId) {
   }
   if (modalId === 'modal-ing-med') {
     sel('im-tipo',   tm, 'id_tipo_medicamento', x => x.nombre);
-    sel('im-unidad', un, 'id',           x => x.nombre);
     document.getElementById('im-fecha').value = today();
   }
   if (modalId === 'modal-adm-alimento') {
@@ -368,6 +367,7 @@ function populateSelects(modalId) {
     sel('am-unidad',  un, 'id_unidad',           x => x.nombre_unidad);
     document.getElementById('am-fecha').value = today();
   }
+  if (modalId === 'modal-editar-tipos-med') { loadEditarTiposMed(); }
   if (modalId === 'modal-editar-tipos-alimento') {
     loadEditarTiposAlimento();
   }
@@ -662,24 +662,26 @@ async function loadTiposMed() {
       <td class="mono">${t.id_tipo_medicamento}</td>
       <td>${t.nombre}</td>
       <td style="color:var(--text3)">${t.descripcion_medi || '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditTipoMed(${t.id_tipo_medicamento},'${(t.nombre||'').replace(/'/g,"\\'")}')" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('');
 }
 
 async function loadStockMed() {
   const data = await tryGet('/stock-medicamento', 'stockMed');
   document.getElementById('stock-med-tbody').innerHTML = data.map(m => {
-    const low = +m.cantidad_actual < 5;
+    const cantidad = +m.cantidadActual;
+    const low = cantidad < 5;
+    const nombre = m.id_tipo_medicamento?.nombre || `Tipo ${m.id_stock_medicamento}`;
     return `<tr>
-      <td>${m.nombre}</td>
-      <td class="mono">${+m.cantidad_actual}</td>
-      <td class="mono">${m.nombre_unidad || '—'}</td>
+      <td>${nombre}</td>
+      <td class="mono">${cantidad.toLocaleString()}</td>
       <td>${low
         ? '<span class="badge badge-red">⚠ Bajo</span>'
         : '<span class="badge badge-green">OK</span>'}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
+  }).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
 
-  const low = data.some(m => +m.cantidad_actual < 5);
+  const low = data.some(m => +m.cantidadActual < 5);
   document.getElementById('badge-med').style.display = low ? 'inline' : 'none';
 }
 
@@ -690,9 +692,9 @@ async function loadIngMed() {
       <td class="mono">${r.ing_medicamento}</td>
       <td>${r.id_tipo_medicamento?.nombre || '—'}</td>
       <td class="mono">${+r.cantidad}</td>
-      <td class="mono">${r.id_unidad?.nombre || '—'}</td>
       <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
+      <td class="mono">${r.valor_total != null ? '$' + (+r.valor_total).toLocaleString() : '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngMed(${r.ing_medicamento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
       '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
@@ -1110,22 +1112,174 @@ async function deleteIngAlimento() {
   }
 }
 
-function postTipoMed() {
-  doPost('/tipo-medicamento',
-      { nombre: v('tm-nombre'), descripcion_medi: v('tm-desc') },
-      'modal-tipo-med', loadTiposMed, 'Tipo Medicamento');
+async function postTipoMed() {
+  const errBox = document.getElementById('tm-error-msg');
+  const errText = document.getElementById('tm-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const nombre = v('tm-nombre')?.trim();
+  if (!nombre) {
+    if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
+    return;
+  }
+  const existe = S.tiposMed?.some(t => t.nombre?.toLowerCase() === nombre.toLowerCase());
+  if (existe) {
+    if (errBox && errText) { errText.textContent = `Ya existe un tipo de medicamento con el nombre "${nombre}".`; errBox.style.display = ''; }
+    return;
+  }
+  try {
+    const r = await fetch(S.apiBase + '/tipo-medicamento', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, descripcion_medi: v('tm-desc') })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al guardar.'; errBox.style.display = ''; }
+      return;
+    }
+    toast('✅', 'Tipo de medicamento guardado');
+    closeModal('modal-tipo-med');
+    loadTiposMed();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
+  }
 }
 function postIngMed() {
   doPost('/ing-medicamento',
       {
         id_tipo_medicamento: { id_tipo_medicamento: +v('im-tipo') },
         cantidad:            +v('im-cantidad'),
-        id_unidad:           { id: +v('im-unidad') },
         fecha_ingreso:       v('im-fecha'),
         valor_total:         +v('im-vtotal')
       },
       'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
 }
+
+// ─── EDITAR TIPOS MEDICAMENTO ─────────────────────────────
+async function loadEditarTiposMed() {
+  const lista = document.getElementById('editar-tipos-med-lista');
+  try {
+    const data = await tryGet('/tipo-medicamento', 'tiposMed');
+    if (!data || data.length === 0) {
+      lista.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No hay tipos registrados</div>';
+      return;
+    }
+    lista.innerHTML = data.map(t => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2)">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px;color:var(--text)">${t.nombre}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">${t.descripcion_medi || 'Sin descripción'}</div>
+        </div>
+        ${isAdmin() ? `<button class="btn btn-sm" onclick="deleteTipoMed(${t.id_tipo_medicamento},'${(t.nombre||'').replace(/'/g,"\\'")}');" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">🗑️ Eliminar</button>` : ''}
+      </div>
+    `).join('');
+  } catch {
+    lista.innerHTML = '<div style="color:var(--red);font-size:12px;text-align:center;padding:20px">Error al cargar tipos</div>';
+  }
+}
+
+function prepareEditTipoMed(id, nombre) {
+  openModal('modal-editar-tipos-med');
+  loadEditarTiposMed();
+}
+
+async function deleteTipoMed(id, nombre) {
+  if (!confirm(`⚠️ ¿Eliminar el tipo de medicamento "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch(S.apiBase + '/tipo-medicamento/' + id, { method: 'DELETE' });
+    if (!r.ok) {
+      toast('❌', 'No se pudo eliminar', 'El tipo puede estar en uso.', 't-error');
+      return;
+    }
+    toast('✅', 'Tipo de medicamento eliminado');
+    await loadTiposMed();
+    await loadEditarTiposMed();
+  } catch {
+    toast('❌', 'Error al eliminar', 'No se pudo conectar.', 't-error');
+  }
+}
+
+// ─── EDITAR INGRESO MEDICAMENTO ───────────────────────────
+async function prepareEditIngMed(id) {
+  try {
+    const allData = await tryGet('/ing-medicamento', 'ingMed');
+    const ingreso = allData.find(r => r.ing_medicamento === id);
+    if (!ingreso) { toast('❌', 'Ingreso no encontrado', '', 't-warn'); return; }
+
+    document.getElementById('eim-id').value = ingreso.ing_medicamento;
+    document.getElementById('eim-tipo-id').value = ingreso.id_tipo_medicamento?.id_tipo_medicamento || '';
+    document.getElementById('eim-tipo-display').value = ingreso.id_tipo_medicamento?.nombre || 'Desconocido';
+    document.getElementById('eim-cantidad').value = ingreso.cantidad;
+    document.getElementById('eim-fecha').value = ingreso.fecha_ingreso;
+    document.getElementById('eim-vtotal').value = ingreso.valor_total || '';
+    const errBox = document.getElementById('eim-error-msg');
+    if (errBox) errBox.style.display = 'none';
+    openModal('modal-editar-ing-med');
+  } catch {
+    toast('❌', 'Error al cargar ingreso', '', 't-warn');
+  }
+}
+
+async function updateIngMed() {
+  const errBox = document.getElementById('eim-error-msg');
+  const errText = document.getElementById('eim-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const id = v('eim-id');
+  if (!v('eim-cantidad') || +v('eim-cantidad') <= 0) {
+    if (errBox && errText) { errText.textContent = 'La cantidad debe ser mayor a 0.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!v('eim-fecha')) {
+    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
+    return;
+  }
+
+  const tipoId = v('eim-tipo-id');
+  const unidadId = v('eim-unidad-id');
+  const vtotal = v('eim-vtotal');
+  const payload = {
+    id_tipo_medicamento: tipoId ? { id_tipo_medicamento: +tipoId } : null,
+    cantidad: +v('eim-cantidad'),
+    fecha_ingreso: v('eim-fecha'),
+    valor_total: vtotal && +vtotal > 0 ? +vtotal : null
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/ing-medicamento/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al actualizar.'; errBox.style.display = ''; }
+      return;
+    }
+    toast('✅', 'Ingreso actualizado', 'Los cambios se guardaron correctamente');
+    closeModal('modal-editar-ing-med');
+    loadIngMed();
+    loadStockMed();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar.'; errBox.style.display = ''; }
+  }
+}
+
+async function deleteIngMed() {
+  const id = v('eim-id');
+  const nombre = document.getElementById('eim-tipo-display').value;
+  if (!confirm(`⚠️ ¿Eliminar este ingreso de "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch(S.apiBase + '/ing-medicamento/' + id, { method: 'DELETE' });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', '', 't-error'); return; }
+    toast('✅', 'Ingreso eliminado');
+    closeModal('modal-editar-ing-med');
+    loadIngMed();
+    loadStockMed();
+  } catch {
+    toast('❌', 'Error al eliminar', '', 't-error');
+  }
+}
+
 function postTipoMuerte() {
   doPost('/tipo-muerte',
       { nombre: v('tmu-nombre'), descripcion: v('tmu-desc') },

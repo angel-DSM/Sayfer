@@ -346,7 +346,7 @@
       </div>
       <div class="flex">
         <button class="btn btn-secondary" onclick="openModal('modal-tipo-alimento')">+ Tipo Alimento</button>
-        <button class="btn btn-secondary" onclick="openModal('modal-editar-tipos-alimento')">📝 Editar Tipos de Alimento</button>
+        <button class="btn btn-secondary" onclick="openModal('modal-editar-tipos-alimento')">🗑️ Eliminar Alimento</button>
         <button class="btn btn-primary" onclick="openModal('modal-ing-alimento')">+ Ingresar al Inventario</button>
       </div>
     </div>
@@ -401,7 +401,8 @@
         <div class="page-sub">stock_medicamento · tipo_medicamento · ing_medicamento</div>
       </div>
       <div class="flex">
-        <button class="btn btn-secondary" onclick="openModal('modal-tipo-med')">+ Tipo Medicamento</button>
+        <button class="btn btn-secondary" data-admin-only onclick="openModal('modal-tipo-med')">+ Tipo Medicamento</button>
+        <button class="btn btn-secondary" data-admin-only onclick="openModal('modal-editar-tipos-med')">🗑️ Eliminar Medicamento</button>
         <button class="btn btn-primary" onclick="openModal('modal-ing-med')">+ Registrar Ingreso</button>
       </div>
     </div>
@@ -415,7 +416,7 @@
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>Medicamento</th><th>Stock</th><th>Unidad</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Medicamento</th><th>Stock</th><th>Estado</th></tr></thead>
             <tbody id="stock-med-tbody">
             <tr><td colspan="4" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -426,7 +427,7 @@
         <div class="card-header"><span class="card-title">Tipos de Medicamento</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripcion</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Descripcion</th><th>Acciones</th></tr></thead>
             <tbody id="tipos-med-tbody">
             <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -438,7 +439,7 @@
       <div class="card-header"><span class="card-title">Historial de Ingresos</span></div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Medicamento</th><th>Cantidad total</th><th>Unidad</th><th>Fecha</th><th>Valor Total</th></tr></thead>
+          <thead><tr><th>ID</th><th>Medicamento</th><th>Cantidad total</th><th>Fecha</th><th>Valor Total</th><th>Acciones</th></tr></thead>
           <tbody id="ing-med-tbody">
           <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -921,12 +922,51 @@
 </div>
 
 <!-- Tipo Medicamento -->
+<!-- Editar Tipos Medicamento -->
+<div class="modal-overlay" id="modal-editar-tipos-med">
+  <div class="modal" style="max-width:600px;max-height:70vh;overflow-y:auto">
+    <div class="modal-header"><div class="modal-title">Editar Tipos de Medicamento</div><button class="modal-close" onclick="closeModal('modal-editar-tipos-med')">✕</button></div>
+    <div class="modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px" id="editar-tipos-med-lista">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:20px"><span class="spin"></span> Cargando tipos...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-tipos-med')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Editar Ingreso Medicamento -->
+<div class="modal-overlay" id="modal-editar-ing-med">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Ingreso de Medicamento</div><button class="modal-close" onclick="closeModal('modal-editar-ing-med')">✕</button></div>
+    <div class="form-grid">
+      <div class="fgroup full"><label>Tipo Medicamento</label><input id="eim-tipo-display" type="text" disabled style="background:var(--bg2);"></div>
+      <div class="fgroup"><label>Cantidad</label><input id="eim-cantidad" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
+      <div class="fgroup"><label>Fecha Ingreso</label><input id="eim-fecha" type="date"></div>
+      <div class="fgroup"><label>Valor Total (COP)</label><input id="eim-vtotal" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
+      <input type="hidden" id="eim-id">
+      <input type="hidden" id="eim-tipo-id">
+      <div id="eim-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="eim-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-ing-med')">Cancelar</button>
+      <button class="btn btn-primary" data-admin-only onclick="updateIngMed()">Guardar Cambios</button>
+      <button class="btn" data-admin-only style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteIngMed()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-tipo-med">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Tipo de Medicamento</div><button class="modal-close" onclick="closeModal('modal-tipo-med')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Nombre</label><input id="tm-nombre" type="text" placeholder="Vacuna Newcastle"></div>
       <div class="fgroup full"><label>Descripción</label><textarea id="tm-desc" rows="2"></textarea></div>
+      <div id="tm-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="tm-error-text"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-tipo-med')">Cancelar</button>
@@ -941,10 +981,12 @@
     <div class="modal-header"><div class="modal-title">Registrar Ingreso de Medicamento</div><button class="modal-close" onclick="closeModal('modal-ing-med')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Tipo Medicamento</label><select id="im-tipo"></select></div>
-      <div class="fgroup"><label>Cantidad total</label><input id="im-cantidad" type="number" step="0.01"></div>
-      <div class="fgroup"><label>Unidad medida</label><select id="im-unidad"></select></div>
+      <div class="fgroup"><label>Cantidad total</label><input id="im-cantidad" type="number" step="0.01" onkeydown="onlyNumbers(event)" placeholder="0.00"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="im-fecha" type="date"></div>
-      <div class="fgroup"><label>Valor Total</label><input id="im-vtotal" type="number" step="0.01"></div>
+      <div class="fgroup"><label>Valor Total (COP)</label><input id="im-vtotal" type="number" step="0.01" onkeydown="onlyNumbers(event)" placeholder="0.00"></div>
+      <div id="im-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="im-error-text"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-ing-med')">Cancelar</button>

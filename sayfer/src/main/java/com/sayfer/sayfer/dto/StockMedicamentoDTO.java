@@ -15,5 +15,4 @@ public class StockMedicamentoDTO {
     private Integer id_stock_medicamento;
     private BigDecimal cantidadActual;
     private TipoMedicamentoDTO id_tipo_medicamento;
-    private UnidadMedidaDTO id_unidad;
 }
