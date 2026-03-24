@@ -16,8 +16,8 @@ public class IngAlimentoValidator {
             throw new ValidateException("La fecha de ingreso es obligatoria");
         }
 
-        if (registro.getValor_total() == null || registro.getValor_total().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ValidateException("El valor total debe ser mayor a cero");
+        if (registro.getValor_total() != null && registro.getValor_total().compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidateException("El valor total no puede ser negativo");
         }
     }
 }

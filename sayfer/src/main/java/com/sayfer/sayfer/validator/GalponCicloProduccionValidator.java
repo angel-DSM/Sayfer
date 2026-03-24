@@ -6,7 +6,7 @@ import com.sayfer.sayfer.exeption.ValidateException;
 public class GalponCicloProduccionValidator {
     public static void validate(GalponCicloProduccionDTO register){
 
-        if(register.getFecha_inicio() == null || register.getFecha_inicio() < register.getFecha_fin() == null){
+        if(register.getFecha_inicio() == null){
             throw new ValidateException("se requiere fecha de inicio");
         }
         if(register.getFecha_fin() == null){
