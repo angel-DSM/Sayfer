@@ -329,7 +329,13 @@ function populateSelects(modalId) {
     if (!el) return;
     el.innerHTML = arr.map(x => `<option value="${x[valKey]}">${lblFn(x)}</option>`).join('');
   };
-
+  // Ciclos: carga galpones en el select y limpia campos al abrir
+  if (modalId === 'modal-ciclo') {
+    sel('c-galpon', g, 'id_galpon', x => x.nombre);
+    document.getElementById('c-nombre').value = '';
+    document.getElementById('c-inicio').value = today();
+    document.getElementById('c-fin').value    = '';
+  }
   const { galpones: g, ciclos: c, tiposAlimento: ta,
     tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
 
@@ -581,21 +587,24 @@ async function loadGalpones() {
 async function loadCiclos() {
   S.ciclos = await tryGet('/ciclo-produccion', 'ciclos');
   document.getElementById('ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    const ini  = new Date(c.fecha_inicio);
-    const fin  = c.fecha_fin ? new Date(c.fecha_fin) : new Date();
-    const dias = Math.round((fin - ini) / (1000 * 60 * 60 * 24));
+    const activo = !c.fecha_fin;
+    const estadoBadge = activo
+        ? '<span class="badge badge-green">● Activo</span>'
+        : '<span class="badge badge-gray">Cerrado</span>';
+    const galponNombre = c.id_galpon?.nombre || '—';
     return `<tr>
       <td class="mono">${c.id_ciclo}</td>
       <td>${c.nombre_ciclo || '—'}</td>
-      <td class="mono">${c.fecha_inicio}</td>
+      <td>${galponNombre}</td>
+      <td class="mono">${c.fecha_inicio || '—'}</td>
       <td class="mono">${c.fecha_fin || 'En curso'}</td>
-      <td class="mono">${dias} días</td>
-      <td>${c.fecha_fin
-        ? '<span class="badge badge-gray">Cerrado</span>'
-        : '<span class="badge badge-green">● Activo</span>'}</td>
-      ${isAdmin() ? `<td><button class="btn btn-secondary btn-sm">✏️</button></td>` : '<td>—</td>'}
+      <td class="mono">${c.duracion != null ? c.duracion + ' días' : '—'}</td>
+      <td>${estadoBadge}</td>
+      ${isAdmin()
+        ? `<td><button class="btn btn-secondary btn-sm" onclick="prepareEditCiclo(${c.id_ciclo})">✏️</button></td>`
+        : '<td>—</td>'}
     </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
 }
 
 // ─── ALIMENTO ─────────────────────────────────────────────
@@ -866,9 +875,62 @@ function postGalpon() {
       'modal-galpon', loadGalpones, 'Galpón');
 }
 function postCiclo() {
+  const galponId = +document.getElementById('c-galpon').value;
+  if (!galponId) { toast('⚠️', 'Galpón requerido', 'Seleccione un galpón', 't-warn'); return; }
   doPost('/ciclo-produccion',
-      { nombreCiclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
+      {
+        nombre_ciclo: v('c-nombre'),
+        fecha_inicio: v('c-inicio'),
+        fecha_fin:    v('c-fin') || null,
+        id_galpon:    { id_galpon: galponId }
+      },
       'modal-ciclo', loadCiclos, 'Ciclo');
+}
+// Llena un <select> de galpones con opción pre-seleccionada
+async function fillGalponSelect(selectId, selectedId = null) {
+  const galpones = await tryGet('/galpon', 'galpones');
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">— Seleccione un galpón —</option>' +
+      galpones.map(g =>
+          `<option value="${g.id_galpon}" ${g.id_galpon === selectedId ? 'selected' : ''}>${g.nombre}</option>`
+      ).join('');
+}
+
+// Abre el modal de edición con los datos del ciclo (solo ADMIN)
+async function prepareEditCiclo(id) {
+  const ciclo = S.ciclos.find(c => c.id_ciclo === id);
+  if (!ciclo) return;
+  document.getElementById('ec-id').value     = ciclo.id_ciclo;
+  document.getElementById('ec-nombre').value = ciclo.nombre_ciclo || '';
+  document.getElementById('ec-inicio').value = ciclo.fecha_inicio || '';
+  document.getElementById('ec-fin').value    = ciclo.fecha_fin    || '';
+  await fillGalponSelect('ec-galpon', ciclo.id_galpon?.id_galpon);
+  openModal('modal-editar-ciclo');
+}
+
+// Envía PUT con header X-User-Rol para protección de rol
+async function updateCiclo() {
+  const id = +document.getElementById('ec-id').value;
+  const payload = {
+    nombre_ciclo: document.getElementById('ec-nombre').value,
+    fecha_inicio: document.getElementById('ec-inicio').value,
+    fecha_fin:    document.getElementById('ec-fin').value || null,
+    id_galpon:    { id_galpon: +document.getElementById('ec-galpon').value }
+  };
+  try {
+    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
+      method: 'PUT',
+      headers: { ...headers(), 'X-User-Rol': S.user?.rol || '' },
+      body: JSON.stringify(payload)
+    });
+    const res = await r.json();
+    if (!r.ok) { toast('❌', 'Error', res.message || 'No se pudo actualizar'); return; }
+    toast('✅', 'Ciclo actualizado', payload.nombre_ciclo);
+    closeModal('modal-editar-ciclo');
+    loadCiclos();
+  } catch (err) {
+    toast('❌', 'Error de red', err.message);
+  }
 }
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');

@@ -21,6 +21,9 @@ public class GalponCicloProduccion {
     @Column(name = "id_galpon_ciclo_produccion")
     private Integer id_galpon_ciclo_produccion;
 
+    @Column(name = "nombre_ciclo", length = 20, nullable = false)
+    private String nombreCiclo;
+
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fecha_inicio;
 
