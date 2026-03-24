@@ -17,36 +17,129 @@
      PANTALLA DE LOGIN
 ═══════════════════════════════════════ -->
 <div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="sb-logo">
-        <svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9a2 2 0 110-4 2 2 0 010 4z"/></svg>
+
+  <!-- ── Panel izquierdo ── -->
+  <div class="login-left">
+    <div class="login-left-content">
+
+      <div class="login-chick-logo">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cuerpo -->
+          <ellipse cx="32" cy="42" rx="16" ry="13" fill="#FFD54F"/>
+          <!-- Cabeza -->
+          <circle cx="32" cy="24" r="13" fill="#FFD54F"/>
+          <!-- Plumas del copete -->
+          <ellipse cx="25" cy="13" rx="3.5" ry="6.5" fill="#FFC107" transform="rotate(-22 25 13)"/>
+          <ellipse cx="32" cy="11" rx="3.5" ry="7" fill="#FFECB3"/>
+          <ellipse cx="39" cy="13" rx="3.5" ry="6.5" fill="#FFC107" transform="rotate(22 39 13)"/>
+          <!-- Blanco de ojos -->
+          <circle cx="26" cy="23" r="4" fill="white"/>
+          <circle cx="38" cy="23" r="4" fill="white"/>
+          <!-- Pupilas -->
+          <circle cx="27" cy="23" r="2" fill="#1a1a1a"/>
+          <circle cx="39" cy="23" r="2" fill="#1a1a1a"/>
+          <!-- Brillo -->
+          <circle cx="27.8" cy="22.2" r="0.7" fill="white"/>
+          <circle cx="39.8" cy="22.2" r="0.7" fill="white"/>
+          <!-- Pico -->
+          <path d="M28 28 L32 34 L36 28 Z" fill="#FF8F00"/>
+          <!-- Alas -->
+          <ellipse cx="14" cy="41" rx="6" ry="9" fill="#FFC107" transform="rotate(-18 14 41)"/>
+          <ellipse cx="50" cy="41" rx="6" ry="9" fill="#FFC107" transform="rotate(18 50 41)"/>
+          <!-- Patas -->
+          <line x1="26" y1="53" x2="26" y2="57" stroke="#FF8F00" stroke-width="2" stroke-linecap="round"/>
+          <line x1="38" y1="53" x2="38" y2="57" stroke="#FF8F00" stroke-width="2" stroke-linecap="round"/>
+          <!-- Dedos -->
+          <path d="M26 57 L22 60 M26 57 L25 61 M26 57 L29 60" stroke="#FF8F00" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M38 57 L34 60 M38 57 L37 61 M38 57 L42 60" stroke="#FF8F00" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
       </div>
-      <div>
-        <div class="sb-title" style="color:var(--text)">SAYFER</div>
-        <div class="sb-sub" style="color:var(--text3)">Gestión Avícola · proyecto_sayfer</div>
-      </div>
+
+      <h1 class="login-hello">¡Hola,<br>SAYFER!</h1>
+      <p class="login-tagline">Gestiona tu granja avícola de forma eficiente.<br>Control total desde un solo lugar.</p>
+      <span class="login-version">Beta 0.0.1</span>
+
     </div>
-    <div class="form-grid" style="grid-template-columns:1fr; gap:14px; margin-bottom:18px;">
-      <div class="fgroup">
+  </div>
+
+  <!-- ── Panel derecho ── -->
+  <div class="login-right">
+    <div class="login-form-wrap">
+
+      <div class="login-brand">SAYFER</div>
+      <h2 class="login-welcome">¡Bienvenido de vuelta!</h2>
+      <p class="login-welcome-sub">Ingresa tus credenciales para acceder al sistema</p>
+
+      <div class="fgroup" style="margin-bottom:14px">
         <label>Usuario</label>
         <input id="login-user" type="text" placeholder="admin" value="admin">
       </div>
-      <div class="fgroup">
+      <div class="fgroup" style="margin-bottom:22px">
         <label>Contraseña</label>
         <input id="login-pass" type="password" placeholder="••••••" value="1234">
       </div>
-      <div class="fgroup">
-        <label>URL API (Java)</label>
-        <input id="login-url" type="text" placeholder="http://localhost:8090" value="http://localhost:8090">
+
+      <button class="btn-login" onclick="doLogin()">Iniciar Sesión</button>
+      <div class="login-footer">Modo demo disponible si el servidor no responde</div>
+      <div style="text-align:center;margin-top:18px">
+        <button class="login-link" onclick="showRecovery(true)">¿Olvidaste tu contraseña?</button>
+      </div>
+
+    </div>
+
+    <!-- ── Recovery panel ── -->
+    <div class="login-form-wrap" id="recovery-wrap" style="display:none">
+
+      <div class="login-brand">SAYFER</div>
+
+      <!-- paso 1: ingresar correo -->
+      <div id="recovery-step-1">
+        <h2 class="login-welcome">Recuperar contraseña</h2>
+        <p class="login-welcome-sub">Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.</p>
+        <div class="fgroup" style="margin-bottom:22px">
+          <label>Correo electrónico</label>
+          <input id="recovery-email" type="email" placeholder="ejemplo@correo.com">
+        </div>
+        <button class="btn-login" onclick="sendRecovery()">Enviar instrucciones</button>
+        <div style="text-align:center;margin-top:18px">
+          <button class="login-link" onclick="showRecovery(false)">← Volver al inicio de sesión</button>
+        </div>
+      </div>
+
+      <!-- paso 2: confirmación -->
+      <div id="recovery-step-2" style="display:none;text-align:center">
+        <div class="recovery-check">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+        </div>
+        <h2 class="login-welcome" style="text-align:center">Correo enviado</h2>
+        <p class="login-welcome-sub" style="text-align:center">Si el correo existe en el sistema, recibirás las instrucciones en breve. Revisa tu bandeja de entrada y spam.</p>
+        <button class="btn-login" onclick="showRecovery(false)" style="margin-top:8px">Volver al inicio de sesión</button>
+      </div>
+
+    </div>
+
+  </div><!-- /login-right -->
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     PANTALLA DE CARGA
+═══════════════════════════════════════ -->
+<div id="loading-screen" aria-hidden="true">
+  <div class="loading-wrap">
+    <div class="runner-track"></div>
+    <div class="runner">
+      <div class="runner-chicken" aria-label="Pollo corriendo" role="img">
+        <span class="ch-body"></span>
+        <span class="ch-head"></span>
+        <span class="ch-beak"></span>
+        <span class="ch-eye"></span>
+        <span class="ch-tail"></span>
+        <span class="ch-leg ch-leg-a"></span>
+        <span class="ch-leg ch-leg-b"></span>
       </div>
     </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" onclick="doLogin()">
-      Ingresar al sistema
-    </button>
-    <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">
-      Modo demo disponible si la API no responde
-    </div>
+    <div class="loading-text">Entrando al sistema...</div>
   </div>
 </div>
 
@@ -62,7 +155,7 @@
       <div class="dot pulsing" id="api-dot"></div>
       <span id="api-label">Conectando...</span>
     </div>
-    <div class="user-chip">
+    <div class="user-chip" onclick="goProfile()" title="Ver perfil" style="cursor:pointer">
       <div class="avatar" id="top-avatar">?</div>
       <span id="top-username">Usuario</span>
     </div>
@@ -226,13 +319,13 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Ciclos de Producción</span>
-        <button class="btn btn-primary btn-sm" onclick="go('ciclos',document.querySelector('[onclick*=ciclos]'),'Ciclos de Producción')">Ver todos</button>
+        <button class="btn btn-primary btn-sm" onclick="go('ciclos',document.querySelector('[onclick*=ciclos]'),'Ciclos de Producción')">Ver todos →</button>
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre Ciclo</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th></tr></thead>
+          <thead><tr><th>ID</th><th>Nombre Ciclo</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th><th></th></tr></thead>
           <tbody id="dash-ciclos-tbody">
-          <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -375,12 +468,18 @@
       <button class="btn btn-primary" onclick="openModal('modal-ciclo')">+ Nuevo Ciclo</button>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Todos los Ciclos</span></div>
+      <div class="card-header">
+        <span class="card-title">Todos los Ciclos</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'ciclos-tbody')">
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>ID</th><th>Nombre</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="ciclos-tbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -496,11 +595,18 @@
       <button class="btn btn-primary" onclick="NewUsuario()">+ Nuevo Usuario</button>
     </div>
     <div class="card">
+      <div class="card-header">
+        <span class="card-title">Gestión de Usuarios</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'usuarios-tbody')">
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Cedula</th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Fecha Registro</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="usuarios-tbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -510,44 +616,181 @@
   <!-- ── CONFIGURACIÓN ── -->
   <div class="tab-content" id="tab-config">
     <div class="page-header">
-      <div><div class="page-title">Configuración</div><div class="page-sub">Conexión API · Unidades de medida</div></div>
+      <div><div class="page-title">Configuración</div><div class="page-sub">Conexión API · Apariencia · Unidades de medida</div></div>
     </div>
     <div class="grid-2">
       <div class="card">
         <div class="card-header"><span class="card-title">Conexión API Java</span></div>
         <div class="card-body">
-          <div class="fgroup" style="margin-bottom:12px">
+          <div class="fgroup" style="margin-bottom:16px">
             <label>URL Base</label>
             <input id="cfg-url" type="text" placeholder="http://localhost:8090">
           </div>
-          <div class="fgroup" style="margin-bottom:12px">
+          <div class="fgroup" style="margin-bottom:20px">
             <label>Token / Bearer</label>
-            <input id="cfg-token" type="password" placeholder="Opcional">
+            <input id="cfg-token" type="password" placeholder="Opcional — Dejar vacío en demo">
           </div>
-          <div class="flex" style="margin-bottom:16px">
-            <button class="btn btn-secondary" onclick="pingApi()">🔌 Probar</button>
-            <button class="btn btn-primary" onclick="saveConfig()">💾 Guardar</button>
+          <div class="flex" style="margin-bottom:20px; gap:10px">
+            <button class="btn btn-secondary btn-sm" onclick="pingApi()">🔌 Probar conexión</button>
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 Guardar cambios</button>
           </div>
           <div class="divider"></div>
           <div id="cfg-status-list"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header">
-          <span class="card-title">Unidades de Medidas</span>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-unidad')">+ Agregar</button>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nombre Unidad</th></tr></thead>
-            <tbody id="unidad-tbody">
-            <tr><td colspan="2" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
-            </tbody>
-          </table>
+        <div class="card-header"><span class="card-title">Apariencia del Sistema</span></div>
+        <div class="card-body">
+          <div style="margin-bottom:20px">
+            <p style="font-size:12px;color:var(--text3);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);font-weight:700">Modo de tema</p>
+            <div class="theme-btns">
+              <button class="theme-btn" data-theme="light" onclick="pickTheme('light')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                Claro
+              </button>
+              <button class="theme-btn" data-theme="dark" onclick="pickTheme('dark')">
+                <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                Oscuro
+              </button>
+              <button class="theme-btn" data-theme="system" onclick="pickTheme('system')">
+                <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                Sistema
+              </button>
+            </div>
+          </div>
+          <div class="alert alert-success" style="margin: 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <div>
+              <div style="font-weight:700">Tema aplicado automáticamente</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Los cambios se guardan localmente en tu navegador</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Unidades de Medidas</span>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-unidad')">+ Agregar unidad</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Nombre Unidad</th><th>Descripción</th><th>Creado</th></tr></thead>
+          <tbody id="unidad-tbody">
+          <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div><!-- /tab-config -->
+
+  <!-- ══ PERFIL ══ -->
+  <div class="tab-content" id="tab-perfil">
+    <div class="page-header">
+      <div><div class="page-title">Mi Perfil</div><div class="page-sub">Información personal · Seguridad</div></div>
+    </div>
+    <div class="profile-layout">
+
+      <!-- Tarjeta avatar -->
+      <div class="card profile-avatar-card">
+        <div class="card-body" style="text-align:center">
+          <div class="profile-avatar-big" id="profile-avatar-big">?</div>
+          <div class="profile-name-display" id="profile-name-display">Usuario</div>
+          <div class="profile-role-display" id="profile-role-display">admin</div>
+        </div>
+      </div>
+
+      <!-- Formularios -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+
+        <!-- Datos personales -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Datos personales</span></div>
+          <div class="card-body">
+            <div class="form-grid" style="grid-template-columns:1fr 1fr">
+              <div class="fgroup">
+                <label>Nombre en pantalla</label>
+                <input id="prf-nombre" type="text" placeholder="Tu nombre">
+              </div>
+              <div class="fgroup">
+                <label>Teléfono</label>
+                <input id="prf-telefono" type="tel" placeholder="+57 300 000 0000">
+              </div>
+              <div class="fgroup full">
+                <label>Correo electrónico</label>
+                <input id="prf-correo" type="email" placeholder="tu@correo.com">
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <button class="btn btn-primary" onclick="saveProfile()">Guardar cambios</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cambiar contraseña -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Contraseña</span></div>
+          <div class="card-body">
+
+            <!-- vista inicial -->
+            <div id="pwd-view-default">
+              <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Por seguridad, para cambiar tu contraseña debes verificar tu identidad primero.</p>
+              <button class="btn btn-secondary" onclick="showChangePassword(true)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                Cambiar contraseña
+              </button>
+            </div>
+
+            <!-- paso 1: verificar contraseña actual -->
+            <div id="pwd-view-step1" style="display:none">
+              <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Verificar identidad</h3>
+              <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Ingresa tu contraseña actual para continuar.</p>
+              <div class="fgroup" style="margin-bottom:18px">
+                <label>Contraseña actual</label>
+                <input id="prf-pass-actual" type="password" placeholder="••••••">
+              </div>
+              <div class="flex">
+                <button class="btn btn-primary" onclick="verifyCurrentPassword()">Continuar</button>
+                <button class="btn btn-secondary" onclick="showChangePassword(false)">Cancelar</button>
+              </div>
+            </div>
+
+            <!-- paso 2: escribir nueva contraseña -->
+            <div id="pwd-view-step2" style="display:none">
+              <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Nueva contraseña</h3>
+              <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Elige una contraseña segura de al menos 6 caracteres.</p>
+              <div class="fgroup" style="margin-bottom:12px">
+                <label>Nueva contraseña</label>
+                <input id="prf-pass-nueva" type="password" placeholder="••••••">
+              </div>
+              <div class="fgroup" style="margin-bottom:18px">
+                <label>Confirmar nueva</label>
+                <input id="prf-pass-confirm" type="password" placeholder="••••••">
+              </div>
+              <div class="flex">
+                <button class="btn btn-primary" onclick="savePassword()">Guardar contraseña</button>
+                <button class="btn btn-secondary" onclick="showChangePassword(false)">Cancelar</button>
+              </div>
+            </div>
+
+            <!-- paso 3: éxito -->
+            <div id="pwd-view-done" style="display:none;text-align:center">
+              <div class="recovery-check" style="margin-bottom:16px">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+              </div>
+              <p style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Contraseña actualizada</p>
+              <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Tu contraseña se cambió correctamente.</p>
+              <button class="btn btn-secondary" onclick="showChangePassword(false)">Listo</button>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /columna derecha -->
+    </div><!-- /profile-layout -->
+  </div><!-- /tab-perfil -->
 
 </div><!-- /main -->
 

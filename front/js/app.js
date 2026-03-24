@@ -11,6 +11,7 @@ const S = {
 
   apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8090',
   token:   localStorage.getItem('sayfer_token') || '',
+  theme:   localStorage.getItem('sayfer_theme') || 'system',
   user:    JSON.parse(localStorage.getItem('sayfer_user') || 'null'),
   // caché de datos de referencia
   galpones:     [],
@@ -81,20 +82,30 @@ async function tryGet(path, demoKey) {
 }
 
 // ─── AUTENTICACIÓN ────────────────────────────────────────
-function doLogin() {
+function toggleLoadingScreen(show) {
+  const loading = document.getElementById('loading-screen');
+  if (!loading) return;
+  loading.classList.toggle('show', show);
+  loading.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+async function doLogin() {
   localStorage.setItem('sayfer_rol_actual', S.user?.rol || 'empleado');
-  const url  = document.getElementById('login-url').value.trim();
   const user = document.getElementById('login-user').value.trim();
-  if (url) { S.apiBase = url; localStorage.setItem('sayfer_url', url); }
 
   const fakeUser = { nombre: user, apellido: '', rol: 'admin', id_usuario: 1 };
   S.user = fakeUser;
   localStorage.setItem('sayfer_user', JSON.stringify(fakeUser));
 
+  toggleLoadingScreen(true);
+  await new Promise(res => setTimeout(res, 2200));
+
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('top-username').textContent = user;
   document.getElementById('top-avatar').textContent   = user[0]?.toUpperCase() || 'U';
   document.getElementById('cfg-url').value = S.apiBase;
+
+  toggleLoadingScreen(false);
 
   pingApi();
   loadAll();
@@ -103,6 +114,112 @@ function doLogin() {
 function doLogout() {
   localStorage.removeItem('sayfer_user');
   location.reload();
+}
+
+function goProfile() {
+  const navItem = document.querySelector('.nav-item[onclick*="perfil"]');
+  go('perfil', navItem, 'Mi Perfil');
+}
+
+// ─── PERFIL ───────────────────────────────────────────────
+function renderProfile() {
+  const u = S.user || {};
+  const nombre = u.nombre || '';
+
+  // avatar grande
+  const big = document.getElementById('profile-avatar-big');
+  if (big) big.textContent = nombre[0]?.toUpperCase() || '?';
+
+  const nd = document.getElementById('profile-name-display');
+  if (nd) nd.textContent = nombre + (u.apellido ? ' ' + u.apellido : '');
+
+  const rd = document.getElementById('profile-role-display');
+  if (rd) rd.textContent = u.rol || 'usuario';
+
+  // campos del form
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('prf-nombre',   nombre);
+  set('prf-correo',   u.correo   || '');
+  set('prf-telefono', u.telefono || '');
+}
+
+function saveProfile() {
+  const nombre   = document.getElementById('prf-nombre').value.trim();
+  const correo   = document.getElementById('prf-correo').value.trim();
+  const telefono = document.getElementById('prf-telefono').value.trim();
+
+  if (!nombre) { toast('⚠️', 'El nombre no puede estar vacío', '', 't-warn'); return; }
+
+  S.user = { ...S.user, nombre, correo, telefono };
+  localStorage.setItem('sayfer_user', JSON.stringify(S.user));
+
+  // actualizar topbar
+  document.getElementById('top-username').textContent = nombre;
+  document.getElementById('top-avatar').textContent   = nombre[0]?.toUpperCase() || 'U';
+
+  renderProfile();
+  toast('✅', 'Perfil actualizado');
+}
+
+function showChangePassword(show) {
+  const views = ['pwd-view-default','pwd-view-step1','pwd-view-step2','pwd-view-done'];
+  views.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const target = show ? 'pwd-view-step1' : 'pwd-view-default';
+  const el = document.getElementById(target);
+  if (el) el.style.display = '';
+  // limpiar campos
+  ['prf-pass-actual','prf-pass-nueva','prf-pass-confirm'].forEach(id => {
+    const f = document.getElementById(id); if (f) f.value = '';
+  });
+}
+
+function verifyCurrentPassword() {
+  const actual = document.getElementById('prf-pass-actual').value;
+  if (!actual) { document.getElementById('prf-pass-actual').focus(); return; }
+  // Aquí iría la verificación con el backend
+  document.getElementById('pwd-view-step1').style.display = 'none';
+  document.getElementById('pwd-view-step2').style.display = '';
+}
+
+function savePassword() {
+  const nueva    = document.getElementById('prf-pass-nueva').value;
+  const confirma = document.getElementById('prf-pass-confirm').value;
+  if (!nueva || !confirma) {
+    toast('⚠️', 'Completa ambos campos', '', 't-warn'); return;
+  }
+  if (nueva !== confirma) {
+    toast('⚠️', 'Las contraseñas no coinciden', '', 't-warn'); return;
+  }
+  if (nueva.length < 6) {
+    toast('⚠️', 'Mínimo 6 caracteres', '', 't-warn'); return;
+  }
+  // Aquí iría el PUT al backend
+  document.getElementById('pwd-view-step2').style.display = 'none';
+  document.getElementById('pwd-view-done').style.display  = '';
+}
+
+function showRecovery(show) {
+  document.getElementById('recovery-wrap').style.display = show ? '' : 'none';
+  document.querySelector('.login-form-wrap:not(#recovery-wrap)').style.display = show ? 'none' : '';
+  if (!show) {
+    // resetear pasos al volver
+    document.getElementById('recovery-step-1').style.display = '';
+    document.getElementById('recovery-step-2').style.display = 'none';
+    document.getElementById('recovery-email').value = '';
+  }
+}
+
+function sendRecovery() {
+  const email = document.getElementById('recovery-email').value.trim();
+  if (!email) {
+    document.getElementById('recovery-email').focus();
+    return;
+  }
+  document.getElementById('recovery-step-1').style.display = 'none';
+  document.getElementById('recovery-step-2').style.display = '';
 }
 
 // ─── NAVEGACIÓN ENTRE TABS ────────────────────────────────
@@ -126,7 +243,8 @@ function go(tabId, el, label) {
     'adm-alimento':    loadAdmAlimento,
     'adm-medicamento': loadAdmMed,
     'usuarios':        loadUsuarios,
-    'config':          () => { loadUnidades(); renderConfigStatus(); }
+    'config':          () => { loadUnidades(); renderConfigStatus(); },
+    'perfil':          renderProfile
   };
   loaders[tabId]?.();
 }
@@ -227,19 +345,43 @@ async function pingApi() {
   }
 }
 
+function getSystemTheme() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(mode = 'system') {
+  S.theme = mode;
+  const resolved = mode === 'system' ? getSystemTheme() : mode;
+  document.body.dataset.theme = resolved;
+  // resaltar el botón activo
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === mode);
+  });
+}
+
+function pickTheme(mode) {
+  localStorage.setItem('sayfer_theme', mode);
+  applyTheme(mode);
+}
+
 function saveConfig() {
   S.apiBase = document.getElementById('cfg-url').value   || S.apiBase;
   S.token   = document.getElementById('cfg-token').value || '';
+
   localStorage.setItem('sayfer_url',   S.apiBase);
   localStorage.setItem('sayfer_token', S.token);
+
   toast('💾', 'Configuración guardada');
   pingApi();
+  renderConfigStatus();
 }
 
 function renderConfigStatus() {
   document.getElementById('cfg-url').value = S.apiBase;
+  applyTheme(S.theme);   // sincroniza botones activos
   document.getElementById('cfg-status-list').innerHTML = `
     <div class="info-row"><span class="info-key">URL</span><span class="mono">${S.apiBase}</span></div>
+    <div class="info-row"><span class="info-key">Tema</span><span class="mono">${S.theme}</span></div>
     <div class="info-row"><span class="info-key">Base de datos</span><span class="mono">proyecto_sayfer</span></div>
     <div class="info-row"><span class="info-key">Tablas mapeadas</span><span class="mono">13 tablas</span></div>`;
 }
@@ -748,6 +890,14 @@ function postUnidad() {
 
 // ─── INICIALIZACIÓN ───────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  toggleLoadingScreen(false);
+  applyTheme(S.theme);
+
+  const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  systemThemeQuery.addEventListener('change', () => {
+    if (S.theme === 'system') applyTheme('system');
+  });
+
   if (S.user) {
     document.getElementById('login-screen').style.display  = 'none';
     document.getElementById('top-username').textContent    = S.user.nombre;
