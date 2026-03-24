@@ -71,12 +71,17 @@
       <p class="login-welcome-sub">Ingresa tus credenciales para acceder al sistema</p>
 
       <div class="fgroup" style="margin-bottom:14px">
-        <label>Usuario</label>
-        <input id="login-user" type="text" placeholder="admin" value="admin">
+        <label>Correo</label>
+        <input id="login-user" type="email" placeholder="admin@sayfer.com">
       </div>
       <div class="fgroup" style="margin-bottom:22px">
         <label>Contraseña</label>
-        <input id="login-pass" type="password" placeholder="••••••" value="1234">
+        <input id="login-pass" type="password" placeholder="••••••">
+      </div>
+
+      <div id="login-error" class="login-error-msg" style="display:none">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="login-error-text">Credenciales incorrectas. Verifica tus datos.</span>
       </div>
 
       <button class="btn-login" onclick="doLogin()">Iniciar Sesión</button>
@@ -220,12 +225,12 @@
       Adm. Medicamentos
     </div>
 
-    <div class="sb-section-label">SISTEMA</div>
-    <div class="nav-item" onclick="go('usuarios',this,'Usuarios')">
+    <div class="sb-section-label" data-admin-only>SISTEMA</div>
+    <div class="nav-item" data-admin-only onclick="go('usuarios',this,'Usuarios')">
       <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg></div>
       Usuarios
     </div>
-    <div class="nav-item" onclick="go('config',this,'Configuración')">
+    <div class="nav-item" data-admin-only onclick="go('config',this,'Configuración')">
       <div class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M2 12h2m16 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
       Configuración
     </div>
@@ -625,7 +630,7 @@
         <div class="card-body">
           <div class="fgroup" style="margin-bottom:16px">
             <label>URL Base</label>
-            <input id="cfg-url" type="text" placeholder="http://localhost:8090">
+            <input id="cfg-url" type="text" placeholder="http://localhost:8090/api">
           </div>
           <div class="fgroup" style="margin-bottom:20px">
             <label>Token / Bearer</label>
@@ -900,8 +905,8 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-editar-ing-alimento')">Cancelar</button>
-      <button class="btn btn-primary" onclick="updateIngAlimento()">Guardar Cambios</button>
-      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteIngAlimento()">🗑️ Eliminar</button>
+      <button class="btn btn-primary" data-admin-only onclick="updateIngAlimento()">Guardar Cambios</button>
+      <button class="btn" data-admin-only style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteIngAlimento()">🗑️ Eliminar</button>
     </div>
   </div>
 </div>

@@ -3,6 +3,7 @@ package com.sayfer.sayfer.service.implementation;
 import com.sayfer.sayfer.dto.UsuarioDTO;
 import com.sayfer.sayfer.entity.Usuario;
 import com.sayfer.sayfer.exeption.NoDataFoundException;
+import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.UsuarioMapper;
 import com.sayfer.sayfer.repository.UsuarioRepository;
 import com.sayfer.sayfer.service.UsuarioService;
@@ -73,5 +74,18 @@ public class UsuarioServiceImplementation implements UsuarioService {
         Usuario entidad = repository.findById(id)
                 .orElseThrow(()-> new NoDataFoundException("No se puede actualizar: No existe el usuario con ID" + id));
         repository.delete(entidad);
+    }
+
+    @Override
+    public UsuarioDTO login(String correo, String password) {
+        Usuario usuario = repository.findByCorreo(correo)
+                .orElseThrow(() -> new ValidateException("Credenciales incorrectas"));
+        if (!password.equals(usuario.getPassword())) {
+            throw new ValidateException("Credenciales incorrectas");
+        }
+        if (Boolean.FALSE.equals(usuario.getEstado())) {
+            throw new ValidateException("Usuario inactivo");
+        }
+        return mapper.toDTO(usuario);
     }
 }

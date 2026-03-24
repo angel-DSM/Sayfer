@@ -9,7 +9,7 @@ localStorage.setItem('sayfer_rol_actual', 'admin');
 let _editandoUsuario = null;
 const S = {
 
-  apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8090',
+  apiBase: localStorage.getItem('sayfer_url') || 'http://localhost:8090/api',
   token:   localStorage.getItem('sayfer_token') || '',
   theme:   localStorage.getItem('sayfer_theme') || 'system',
   user:    JSON.parse(localStorage.getItem('sayfer_user') || 'null'),
@@ -73,11 +73,11 @@ async function tryGet(path, demoKey) {
       return result.content;
     }
 
-    // 3. Si no es ninguno, usa los datos demo
-    return DEMO[demoKey] || [];
+    // 3. Si no es ninguno, retorna vacío
+    return [];
   } catch (err) {
     console.error(`Error cargando ${path}:`, err);
-    return DEMO[demoKey] || [];
+    return [];
   }
 }
 
@@ -89,26 +89,82 @@ function toggleLoadingScreen(show) {
   loading.setAttribute('aria-hidden', show ? 'false' : 'true');
 }
 
-async function doLogin() {
-  localStorage.setItem('sayfer_rol_actual', S.user?.rol || 'empleado');
-  const user = document.getElementById('login-user').value.trim();
+function setLoginError(msg) {
+  const box  = document.getElementById('login-error');
+  const text = document.getElementById('login-error-text');
+  const u    = document.getElementById('login-user');
+  const p    = document.getElementById('login-pass');
+  if (msg) {
+    text.textContent = msg;
+    box.style.display = 'flex';
+    // re-trigger animation
+    box.style.animation = 'none';
+    box.offsetHeight;
+    box.style.animation = '';
+    u.classList.add('input-error');
+    p.classList.add('input-error');
+  } else {
+    box.style.display = 'none';
+    u.classList.remove('input-error');
+    p.classList.remove('input-error');
+  }
+}
 
-  const fakeUser = { nombre: user, apellido: '', rol: 'admin', id_usuario: 1 };
-  S.user = fakeUser;
-  localStorage.setItem('sayfer_user', JSON.stringify(fakeUser));
+async function doLogin() {
+  const correo = document.getElementById('login-user').value.trim();
+  const pass   = document.getElementById('login-pass').value;
+
+  if (!correo || !pass) {
+    setLoginError('Completa el correo y la contraseña para continuar.');
+    return;
+  }
+
+  setLoginError(null);
+
+  let userData;
+  try {
+    const r = await fetch(S.apiBase + '/usuario/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo, password: pass }),
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!r.ok) {
+      setLoginError('Credenciales incorrectas. Verifica tu correo y contraseña.');
+      document.getElementById('login-pass').value = '';
+      return;
+    }
+    const res = await r.json();
+    userData = res.data;
+  } catch (err) {
+    setLoginError('No se pudo conectar con el servidor. Verifica la URL de la API.');
+    return;
+  }
+
+  S.user = userData;
+  localStorage.setItem('sayfer_user', JSON.stringify(userData));
+  localStorage.setItem('sayfer_rol_actual', userData.rol);
 
   toggleLoadingScreen(true);
-  await new Promise(res => setTimeout(res, 2200));
+  await new Promise(res => setTimeout(res, 1500));
 
   document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('top-username').textContent = user;
-  document.getElementById('top-avatar').textContent   = user[0]?.toUpperCase() || 'U';
+  document.getElementById('top-username').textContent = userData.nombre;
+  document.getElementById('top-avatar').textContent   = userData.nombre[0]?.toUpperCase() || 'U';
   document.getElementById('cfg-url').value = S.apiBase;
 
   toggleLoadingScreen(false);
-
+  applyRoleRestrictions();
   pingApi();
   loadAll();
+}
+
+function isAdmin() { return S.user?.rol === 'admin'; }
+
+function applyRoleRestrictions() {
+  document.querySelectorAll('[data-admin-only]').forEach(el => {
+    el.style.display = isAdmin() ? '' : 'none';
+  });
 }
 
 function doLogout() {
@@ -506,7 +562,7 @@ async function loadGalpones() {
       <td>${g.nombre}</td>
       <td>${g.capacidad?.toLocaleString()}</td>
       <td>${S.ciclos.length} ciclos</td>
-      <td><button class="btn btn-secondary btn-sm">✏️ Editar</button></td>
+      ${isAdmin() ? `<td><button class="btn btn-secondary btn-sm">✏️ Editar</button></td>` : '<td>—</td>'}
     </tr>`).join('');
 }
 
@@ -526,7 +582,7 @@ async function loadCiclos() {
       <td>${c.fecha_fin
         ? '<span class="badge badge-gray">Cerrado</span>'
         : '<span class="badge badge-green">● Activo</span>'}</td>
-      <td><button class="btn btn-secondary btn-sm">✏️</button></td>
+      ${isAdmin() ? `<td><button class="btn btn-secondary btn-sm">✏️</button></td>` : '<td>—</td>'}
     </tr>`;
   }).join('');
 }
@@ -570,7 +626,7 @@ async function loadIngAlimento() {
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
       <td class="mono">${r.fecha_ingreso}</td>
       <td class="mono">${r.valor_total != null ? '$' + r.valor_total.toLocaleString() : '—'}</td>
-      <td><button class="btn-icon" onclick="prepareEditIngAlimento(${r.id_IngAlimento})" title="Editar">✏️</button></td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngAlimento(${r.id_IngAlimento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
       '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
@@ -809,9 +865,7 @@ async function loadEditarTiposAlimento() {
           <div style="font-weight:600;font-size:14px;color:var(--text)">${t.nombre_alimento}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px">${t.descripcion_alimento || 'Sin descripción'}</div>
         </div>
-        <button class="btn btn-sm" onclick="deleteTipoAlimento(${t.id_tipo_alimento},'${t.nombre_alimento.replace(/'/g, "\\'")}'" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">
-          🗑️ Eliminar
-        </button>
+        ${isAdmin() ? `<button class="btn btn-sm" onclick="deleteTipoAlimento(${t.id_tipo_alimento},'${t.nombre_alimento.replace(/'/g, "\\'")}'" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">🗑️ Eliminar</button>` : ''}
       </div>
     `).join('');
   } catch (err) {

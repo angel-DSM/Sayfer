@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/usuario")
@@ -59,6 +60,14 @@ public class UsuarioController {
     public ResponseEntity<ApiResponse<Object>> delete(@PathVariable Long cedula) {
         service.delete(cedula);
         return new ApiResponse<>(null, true, "Usuario eliminado exitosamente")
+                .createResponse();
+    }
+
+    // POST /usuario/login
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<UsuarioDTO>> login(@RequestBody Map<String, String> req) {
+        UsuarioDTO resultado = service.login(req.get("correo"), req.get("password"));
+        return new ApiResponse<>(resultado, true, "Login exitoso")
                 .createResponse();
     }
 }
