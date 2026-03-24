@@ -93,9 +93,22 @@ public class IngAlimentoServiceImplementation implements IngAlimentoService {
     @Override
     public IngAlimentoDTO update(Integer id, IngAlimentoDTO obj) {
         IngAlimentoValidator.validate(obj);
-        repository.findById(id)
+        IngAlimento anterior = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
                         "No se encontró ingreso de alimento con id: " + id));
+
+        // Ajustar stock con la diferencia de cantidad
+        long cantidadAnterior = anterior.getCantidad() != null ? anterior.getCantidad().longValue() : 0;
+        long cantidadNueva = obj.getCantidad() != null ? obj.getCantidad().longValue() : 0;
+        long delta = cantidadNueva - cantidadAnterior;
+        if (delta != 0 && anterior.getId_tipo_alimento() != null) {
+            stockRepository.findByIdTipoAlimento(anterior.getId_tipo_alimento()).ifPresent(stock -> {
+                long nuevoStock = stock.getCantidad() + delta;
+                stock.setCantidad(Math.max(nuevoStock, 0));
+                stockRepository.save(stock);
+            });
+        }
+
         IngAlimento entidad = mapper.toEntity(obj);
         entidad.setId_IngAlimento(id);
         IngAlimento actualizado = repository.save(entidad);
@@ -104,9 +117,19 @@ public class IngAlimentoServiceImplementation implements IngAlimentoService {
 
     @Override
     public void delete(Integer id) {
-        repository.findById(id)
+        IngAlimento entidad = repository.findById(id)
                 .orElseThrow(() -> new com.sayfer.sayfer.exeption.NoDataFoundException(
                         "No se encontró ingreso de alimento con id: " + id));
+
+        // Restar del stock la cantidad que se elimina
+        if (entidad.getId_tipo_alimento() != null && entidad.getCantidad() != null) {
+            stockRepository.findByIdTipoAlimento(entidad.getId_tipo_alimento()).ifPresent(stock -> {
+                long nuevo = stock.getCantidad() - entidad.getCantidad().longValue();
+                stock.setCantidad(Math.max(nuevo, 0));
+                stockRepository.save(stock);
+            });
+        }
+
         repository.deleteById(id);
     }
 }

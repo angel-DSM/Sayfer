@@ -354,8 +354,8 @@
       <div class="card">
         <div class="card-header">
           <span class="card-title">Stock Actual</span>
-          <button class="btn-icon" onclick="loadStockAlimento()">
-            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          <button class="btn-icon" onclick="refreshStock('alimento')" title="Refrescar stock">
+            <svg id="spin-stock-alimento" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
           </button>
         </div>
         <div class="card-body" id="stock-alimento-list">
@@ -407,7 +407,12 @@
     </div>
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">
-        <div class="card-header"><span class="card-title">Stock Actual</span></div>
+        <div class="card-header">
+          <span class="card-title">Stock Actual</span>
+          <button class="btn-icon" onclick="refreshStock('med')" title="Refrescar stock">
+            <svg id="spin-stock-med" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>Medicamento</th><th>Stock</th><th>Unidad</th><th>Estado</th></tr></thead>
@@ -842,6 +847,9 @@
     <div class="form-grid">
       <div class="fgroup full"><label>Nombre</label><input id="ta-nombre" type="text" placeholder="Concentrado Iniciador"></div>
       <div class="fgroup full"><label>Descripción</label><textarea id="ta-desc" rows="2" placeholder="Para pollos de 0-21 días..."></textarea></div>
+      <div id="ta-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="ta-error-text"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-tipo-alimento')">Cancelar</button>
@@ -869,9 +877,9 @@
     <div class="modal-header"><div class="modal-title">Registrar Ingreso de Alimento</div><button class="modal-close" onclick="closeModal('modal-ing-alimento')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Tipo de Alimento</label><select id="ia-tipo"></select></div>
-      <div class="fgroup"><label>Cantidad (kg)</label><input id="ia-cantidad" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="fgroup"><label>Cantidad (kg)</label><input id="ia-cantidad" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="ia-fecha" type="date"></div>
-      <div class="fgroup"><label>Valor Total (COP)</label><input id="ia-vtotal" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="fgroup"><label>Valor Total (COP)</label><input id="ia-vtotal" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <div class="fgroup full">
         <label>📦 Stock Actual por Tipo</label>
         <div id="ia-stock-list" style="font-size:13px;padding:6px 0;">
@@ -895,10 +903,11 @@
     <div class="modal-header"><div class="modal-title">Editar Ingreso de Alimento</div><button class="modal-close" onclick="closeModal('modal-editar-ing-alimento')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Tipo de Alimento</label><input id="eia-tipo-display" type="text" placeholder="" disabled style="background:var(--bg2);"></div>
-      <div class="fgroup"><label>Cantidad (kg)</label><input id="eia-cantidad" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="fgroup"><label>Cantidad (kg)</label><input id="eia-cantidad" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="eia-fecha" type="date"></div>
-      <div class="fgroup"><label>Valor Total (COP)</label><input id="eia-vtotal" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="fgroup"><label>Valor Total (COP)</label><input id="eia-vtotal" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <input type="hidden" id="eia-id">
+      <input type="hidden" id="eia-tipo-id">
       <div id="eia-error-msg" class="fgroup full" style="display:none">
         <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="eia-error-text"></div>
       </div>

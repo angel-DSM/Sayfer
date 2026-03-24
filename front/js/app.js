@@ -309,6 +309,9 @@ function go(tabId, el, label) {
 function openModal(id) {
   document.getElementById(id).classList.add('open');
   populateSelects(id);
+  // Limpiar errores al abrir
+  const errBox = document.querySelector(`#${id} [id$="-error-msg"]`);
+  if (errBox) errBox.style.display = 'none';
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
@@ -371,6 +374,14 @@ function populateSelects(modalId) {
 }
 
 function today() { return new Date().toISOString().split('T')[0]; }
+
+// Bloquea todo excepto dígitos, punto decimal y teclas de control
+function onlyNumbers(e) {
+  const control = ['Backspace','Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','Enter','Home','End'];
+  if (control.includes(e.key)) return;
+  if (e.ctrlKey || e.metaKey) return; // permite Ctrl+C, Ctrl+V, etc.
+  if (!/^\d$/.test(e.key) && e.key !== '.') e.preventDefault();
+}
 
 // ─── NOTIFICACIONES TOAST ─────────────────────────────────
 function toast(icon, title, sub = '', type = 't-success') {
@@ -596,6 +607,18 @@ async function loadTiposAlimento() {
       <td>${t.nombre_alimento}</td>
       <td style="color:var(--text3)">${t.descripcion_alimento || '—'}</td>
     </tr>`).join('');
+}
+
+async function refreshStock(type) {
+  const svgId = `spin-stock-${type}`;
+  const svg = document.getElementById(svgId);
+  if (svg) svg.classList.add('spin');
+  try {
+    if (type === 'alimento') await loadStockAlimento();
+    else if (type === 'med') await loadStockMed();
+  } finally {
+    if (svg) svg.classList.remove('spin');
+  }
 }
 
 async function loadStockAlimento() {
@@ -845,10 +868,48 @@ function postCiclo() {
       { nombreCiclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
       'modal-ciclo', loadCiclos, 'Ciclo');
 }
-function postTipoAlimento() {
-  doPost('/tipo-alimento',
-      { nombre_alimento: v('ta-nombre'), descripcion_alimento: v('ta-desc') },
-      'modal-tipo-alimento', () => { loadTiposAlimento(); loadStockAlimento(); }, 'Tipo Alimento');
+async function postTipoAlimento() {
+  const errBox  = document.getElementById('ta-error-msg');
+  const errText = document.getElementById('ta-error-text');
+  errBox.style.display = 'none';
+
+  const nombre = v('ta-nombre')?.trim();
+  if (!nombre) {
+    errText.textContent = 'El nombre del tipo de alimento es obligatorio.';
+    errBox.style.display = '';
+    return;
+  }
+
+  // Validación local: ya existe en caché
+  const existe = S.tiposAlimento.some(t =>
+    t.nombre_alimento.toLowerCase() === nombre.toLowerCase()
+  );
+  if (existe) {
+    errText.textContent = `Ya existe un tipo de alimento con el nombre "${nombre}".`;
+    errBox.style.display = '';
+    return;
+  }
+
+  try {
+    const r = await fetch(S.apiBase + '/tipo-alimento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre_alimento: nombre, descripcion_alimento: v('ta-desc') })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      errText.textContent = err.message || 'Error al guardar el tipo de alimento.';
+      errBox.style.display = '';
+      return;
+    }
+    toast('✅', 'Tipo de alimento guardado');
+    closeModal('modal-tipo-alimento');
+    loadTiposAlimento();
+    loadStockAlimento();
+  } catch {
+    errText.textContent = 'No se pudo conectar con el servidor.';
+    errBox.style.display = '';
+  }
 }
 
 async function loadEditarTiposAlimento() {
@@ -865,7 +926,7 @@ async function loadEditarTiposAlimento() {
           <div style="font-weight:600;font-size:14px;color:var(--text)">${t.nombre_alimento}</div>
           <div style="font-size:12px;color:var(--text3);margin-top:4px">${t.descripcion_alimento || 'Sin descripción'}</div>
         </div>
-        ${isAdmin() ? `<button class="btn btn-sm" onclick="deleteTipoAlimento(${t.id_tipo_alimento},'${t.nombre_alimento.replace(/'/g, "\\'")}'" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">🗑️ Eliminar</button>` : ''}
+        ${isAdmin() ? `<button class="btn btn-sm" onclick="deleteTipoAlimento(${t.id_tipo_alimento},'${t.nombre_alimento.replace(/'/g, "\\'")}');" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">🗑️ Eliminar</button>` : ''}
       </div>
     `).join('');
   } catch (err) {
@@ -878,12 +939,16 @@ async function deleteTipoAlimento(id, nombre) {
   if (!confirmDelete) return;
 
   try {
-    await fetch(S.apiBase + '/tipo-alimento/' + id, { method: 'DELETE' });
-    toast('✅', 'Tipo de alimento eliminado', 'El registro ha sido eliminado correctamente');
-    loadTiposAlimento();
-    loadEditarTiposAlimento();
+    const r = await fetch(S.apiBase + '/tipo-alimento/' + id, { method: 'DELETE' });
+    if (!r.ok) {
+      toast('❌', 'No se pudo eliminar', 'El tipo de alimento puede estar siendo usado en otros registros.', 't-error');
+      return;
+    }
+    toast('✅', 'Tipo de alimento eliminado');
+    await loadTiposAlimento();
+    await loadEditarTiposAlimento();
   } catch (err) {
-    toast('❌', 'Error al eliminar', 'No se pudo eliminar el tipo de alimento');
+    toast('❌', 'Error al eliminar', 'No se pudo conectar con el servidor.', 't-error');
   }
 }
 
@@ -966,6 +1031,7 @@ async function prepareEditIngAlimento(id) {
 
     // Llenar campos del modal
     document.getElementById('eia-id').value = ingreso.id_IngAlimento;
+    document.getElementById('eia-tipo-id').value = ingreso.id_tipo_alimento?.id_tipo_alimento || '';
     document.getElementById('eia-tipo-display').value = ingreso.id_tipo_alimento?.nombre_alimento || 'Desconocido';
     document.getElementById('eia-cantidad').value = ingreso.cantidad;
     document.getElementById('eia-fecha').value = ingreso.fecha_ingreso;
@@ -1002,7 +1068,9 @@ async function updateIngAlimento() {
   }
 
   const vtotal = v('eia-vtotal');
+  const tipoId = v('eia-tipo-id');
   const payload = {
+    id_tipo_alimento: tipoId ? { id_tipo_alimento: +tipoId } : null,
     cantidad: +v('eia-cantidad'),
     fecha_ingreso: v('eia-fecha'),
     valor_total: vtotal && +vtotal > 0 ? +vtotal : null

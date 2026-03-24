@@ -2,15 +2,19 @@ package com.sayfer.sayfer.service.implementation;
 
 import com.sayfer.sayfer.dto.AdmiAlimentoDTO;
 import com.sayfer.sayfer.entity.AdmiAlimento;
+import com.sayfer.sayfer.entity.StockAlimento;
 import com.sayfer.sayfer.exeption.NoDataFoundException;
+import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.AdmiAlimentoMapper;
 import com.sayfer.sayfer.repository.AdmiAlimentoRepository;
+import com.sayfer.sayfer.repository.StockAlimentoRepository;
 import com.sayfer.sayfer.service.AdmiAlimentoService;
 import com.sayfer.sayfer.validator.AdmiAlimentoValidator;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,10 +22,14 @@ import java.util.stream.Collectors;
 public class AdmiAlimentoServiceImplementation implements AdmiAlimentoService {
     private final AdmiAlimentoRepository repository;
     private final AdmiAlimentoMapper mapper;
+    private final StockAlimentoRepository stockRepository;
 
-    public AdmiAlimentoServiceImplementation(AdmiAlimentoRepository repository, AdmiAlimentoMapper mapper) {
+    public AdmiAlimentoServiceImplementation(AdmiAlimentoRepository repository,
+                                             AdmiAlimentoMapper mapper,
+                                             StockAlimentoRepository stockRepository) {
         this.repository = repository;
         this.mapper = mapper;
+        this.stockRepository = stockRepository;
     }
                     //BUSCAR GENERAL
     //entidad y id son variables(si sale error cambiar)
@@ -50,6 +58,21 @@ public class AdmiAlimentoServiceImplementation implements AdmiAlimentoService {
     public AdmiAlimentoDTO create(AdmiAlimentoDTO obj) {
         AdmiAlimentoValidator.validate(obj);
         AdmiAlimento entidad = mapper.toEntity(obj);
+
+        // Descontar del stock
+        if (entidad.getId_tipo_alimento() != null && obj.getCantidad_utilizada() != null) {
+            Optional<StockAlimento> stockOpt = stockRepository.findByIdTipoAlimento(entidad.getId_tipo_alimento());
+            if (stockOpt.isPresent()) {
+                StockAlimento stock = stockOpt.get();
+                long nuevo = stock.getCantidad() - obj.getCantidad_utilizada();
+                if (nuevo < 0) {
+                    throw new ValidateException("Stock insuficiente. Disponible: " + stock.getCantidad() + " kg");
+                }
+                stock.setCantidad(nuevo);
+                stockRepository.save(stock);
+            }
+        }
+
         AdmiAlimento save = repository.save(entidad);
         return mapper.toDTO(save);
     }
@@ -71,6 +94,15 @@ public class AdmiAlimentoServiceImplementation implements AdmiAlimentoService {
     public void delete(Integer id) {
         AdmiAlimento entidad = repository.findById(id)
                 .orElseThrow(() -> new NoDataFoundException("No se puede eliminar: El ID " + id + " no existe"));
+
+        // Devolver cantidad al stock
+        if (entidad.getId_tipo_alimento() != null && entidad.getCantidad_utilizada() != null) {
+            stockRepository.findByIdTipoAlimento(entidad.getId_tipo_alimento()).ifPresent(stock -> {
+                stock.setCantidad(stock.getCantidad() + entidad.getCantidad_utilizada());
+                stockRepository.save(stock);
+            });
+        }
+
         repository.delete(entidad);
     }
 }

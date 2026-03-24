@@ -3,6 +3,7 @@ package com.sayfer.sayfer.service.implementation;
 import com.sayfer.sayfer.dto.TipoAlimentoDTO;
 import com.sayfer.sayfer.entity.TipoAlimento;
 import com.sayfer.sayfer.exeption.NoDataFoundException;
+import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.TipoAlimentoMapper;
 import com.sayfer.sayfer.repository.TipoAlimentoRepository;
 import com.sayfer.sayfer.service.TipoAlimentoService;
@@ -45,6 +46,9 @@ public class TipoAlimentoServiceImplementation implements TipoAlimentoService {
     @Override
     public TipoAlimentoDTO create(TipoAlimentoDTO obj) {
         TipoAlimentoValidator.validate(obj);
+        if (repository.existsByNombreIgnoreCase(obj.getNombre_alimento())) {
+            throw new ValidateException("Ya existe un tipo de alimento con el nombre \"" + obj.getNombre_alimento() + "\"");
+        }
         TipoAlimento entidad = mapper.toEntity(obj);
         TipoAlimento update = repository.save(entidad);
         return mapper.toDTO(update);
