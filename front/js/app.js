@@ -283,11 +283,6 @@ function populateSelects(modalId) {
   if (modalId === 'modal-ing-alimento') {
     sel('ia-tipo', ta, 'id_tipo_alimento', x => x.nombre_alimento);
     document.getElementById('ia-fecha').value = today();
-    // Limpiar error previo
-    const errBox = document.getElementById('ia-error-msg');
-    if (errBox) errBox.style.display = 'none';
-    // Cargar stock actual en el modal
-    loadStockPreviewAlimento();
   }
   if (modalId === 'modal-ing-med') {
     sel('im-tipo',   tm, 'id_tipo_medicamento', x => x.nombre);
@@ -308,9 +303,6 @@ function populateSelects(modalId) {
     sel('am-usuario', u,  'id_usuario',          x => `${x.nombre} ${x.apellido}`);
     sel('am-unidad',  un, 'id_unidad',           x => x.nombre_unidad);
     document.getElementById('am-fecha').value = today();
-  }
-  if (modalId === 'modal-editar-tipos-alimento') {
-    loadEditarTiposAlimento();
   }
 }
 
@@ -569,10 +561,9 @@ async function loadIngAlimento() {
       <td>${r.id_tipo_alimento?.nombre_alimento || '—'}</td>
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
       <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.valor_total != null ? '$' + r.valor_total.toLocaleString() : '—'}</td>
-      <td><button class="btn-icon" onclick="prepareEditIngAlimento(${r.id_IngAlimento})" title="Editar">✏️</button></td>
+      <td class="mono">${r.valor_total    != null ? '$' + r.valor_total.toLocaleString()    : '—'}</td>
     </tr>`).join('') ||
-      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── MEDICAMENTOS ─────────────────────────────────────────
@@ -794,200 +785,12 @@ function postTipoAlimento() {
       { nombre_alimento: v('ta-nombre'), descripcion_alimento: v('ta-desc') },
       'modal-tipo-alimento', () => { loadTiposAlimento(); loadStockAlimento(); }, 'Tipo Alimento');
 }
-
-async function loadEditarTiposAlimento() {
-  const lista = document.getElementById('editar-tipos-lista');
-  try {
-    const data = await tryGet('/tipo-alimento', 'tiposAlimento');
-    if (!data || data.length === 0) {
-      lista.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:20px">No hay tipos de alimento registrados</div>';
-      return;
-    }
-    lista.innerHTML = data.map(t => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2)">
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:14px;color:var(--text)">${t.nombre_alimento}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px">${t.descripcion_alimento || 'Sin descripción'}</div>
-        </div>
-        <button class="btn btn-sm" onclick="deleteTipoAlimento(${t.id_tipo_alimento},'${t.nombre_alimento.replace(/'/g, "\\'")}'" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">
-          🗑️ Eliminar
-        </button>
-      </div>
-    `).join('');
-  } catch (err) {
-    lista.innerHTML = '<div style="color:var(--red);font-size:12px;text-align:center;padding:20px">Error al cargar tipos de alimento</div>';
-  }
+function postIngAlimento() {
+  doPost('/ing-alimento',
+      { id_tipo_alimento: { id_tipo_alimento: +v('ia-tipo') }, cantidad: +v('ia-cantidad'),
+        fecha_ingreso: v('ia-fecha'), valor_total: +v('ia-vtotal'), },
+      'modal-ing-alimento', () => { loadIngAlimento(); loadStockAlimento(); }, 'Ingreso Alimento');
 }
-
-async function deleteTipoAlimento(id, nombre) {
-  const confirmDelete = confirm(`⚠️ ADVERTENCIA DE ELIMINACIÓN\n\n¿Estás seguro de que deseas eliminar el tipo de alimento "${nombre}"?\n\nEsta acción no se puede deshacer y eliminará todos los registros asociados.`);
-  if (!confirmDelete) return;
-
-  try {
-    await fetch(S.apiBase + '/tipo-alimento/' + id, { method: 'DELETE' });
-    toast('✅', 'Tipo de alimento eliminado', 'El registro ha sido eliminado correctamente');
-    loadTiposAlimento();
-    loadEditarTiposAlimento();
-  } catch (err) {
-    toast('❌', 'Error al eliminar', 'No se pudo eliminar el tipo de alimento');
-  }
-}
-
-async function loadStockPreviewAlimento() {
-  const el = document.getElementById('ia-stock-list');
-  if (!el) return;
-  try {
-    const data = await tryGet('/stock-alimento', 'stockAlimento');
-    if (!data || data.length === 0) {
-      el.innerHTML = '<span style="color:var(--text3)">Sin datos de stock</span>';
-      return;
-    }
-    el.innerHTML = data.map(s => {
-      const bajo = +s.cantidad < 2000;
-      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
-        <span>${s.nombre_alimento || `Tipo ${s.id_tipo_alimento}`}</span>
-        <span class="mono" style="color:${bajo ? 'var(--red)' : 'var(--green,#22c55e)'};font-weight:600">
-          ${(+s.cantidad).toLocaleString()} kg${bajo ? ' ⚠️' : ''}
-        </span>
-      </div>`;
-    }).join('');
-  } catch {
-    el.innerHTML = '<span style="color:var(--text3)">No se pudo cargar el stock</span>';
-  }
-}
-
-async function postIngAlimento() {
-  // Limpiar mensaje de error anterior
-  const errBox  = document.getElementById('ia-error-msg');
-  const errText = document.getElementById('ia-error-text');
-  if (errBox) errBox.style.display = 'none';
-
-  // Validación básica
-  if (!v('ia-tipo')) {
-    if (errBox && errText) { errText.textContent = 'Selecciona un tipo de alimento.'; errBox.style.display = ''; }
-    return;
-  }
-  if (!v('ia-cantidad') || +v('ia-cantidad') <= 0) {
-    if (errBox && errText) { errText.textContent = 'La cantidad debe ser mayor a 0.'; errBox.style.display = ''; }
-    return;
-  }
-  if (!v('ia-fecha')) {
-    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
-    return;
-  }
-
-  const vtotal = v('ia-vtotal');
-  const payload = {
-    id_tipo_alimento: { id_tipo_alimento: +v('ia-tipo') },
-    cantidad:    +v('ia-cantidad'),
-    fecha_ingreso: v('ia-fecha'),
-    valor_total: vtotal && +vtotal > 0 ? +vtotal : null
-  };
-
-  try {
-    await POST('/ing-alimento', payload);
-    toast('✅', 'Ingreso de alimento registrado', 'Stock actualizado correctamente');
-    closeModal('modal-ing-alimento');
-    loadIngAlimento();
-    loadStockAlimento();
-  } catch (err) {
-    const msg = err?.message || 'Error desconocido';
-    if (errBox && errText) {
-      errText.textContent = `No se pudo registrar: ${msg}`;
-      errBox.style.display = '';
-    }
-    toast('❌', 'No se pudo registrar el ingreso', msg, 't-warn');
-  }
-}
-
-async function prepareEditIngAlimento(id) {
-  try {
-    const allData = await tryGet('/ing-alimento', 'ingAlimento');
-    const ingreso = allData.find(r => r.id_IngAlimento === id);
-    
-    if (!ingreso) {
-      toast('❌', 'Ingreso no encontrado', '', 't-warn');
-      return;
-    }
-
-    // Llenar campos del modal
-    document.getElementById('eia-id').value = ingreso.id_IngAlimento;
-    document.getElementById('eia-tipo-display').value = ingreso.id_tipo_alimento?.nombre_alimento || 'Desconocido';
-    document.getElementById('eia-cantidad').value = ingreso.cantidad;
-    document.getElementById('eia-fecha').value = ingreso.fecha_ingreso;
-    document.getElementById('eia-vtotal').value = ingreso.valor_total || '';
-    
-    // Limpiar mensajes de error
-    const errBox = document.getElementById('eia-error-msg');
-    if (errBox) errBox.style.display = 'none';
-    
-    openModal('modal-editar-ing-alimento');
-  } catch (err) {
-    toast('❌', 'Error al cargar ingreso', 'No se pudo cargar los datos', 't-warn');
-  }
-}
-
-async function updateIngAlimento() {
-  const errBox = document.getElementById('eia-error-msg');
-  const errText = document.getElementById('eia-error-text');
-  if (errBox) errBox.style.display = 'none';
-
-  const id = v('eia-id');
-  if (!id) {
-    if (errBox && errText) { errText.textContent = 'Error: ID no válido'; errBox.style.display = ''; }
-    return;
-  }
-
-  if (!v('eia-cantidad') || +v('eia-cantidad') <= 0) {
-    if (errBox && errText) { errText.textContent = 'La cantidad debe ser mayor a 0.'; errBox.style.display = ''; }
-    return;
-  }
-  if (!v('eia-fecha')) {
-    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
-    return;
-  }
-
-  const vtotal = v('eia-vtotal');
-  const payload = {
-    cantidad: +v('eia-cantidad'),
-    fecha_ingreso: v('eia-fecha'),
-    valor_total: vtotal && +vtotal > 0 ? +vtotal : null
-  };
-
-  try {
-    await PUT(`/ing-alimento/${id}`, payload);
-    toast('✅', 'Ingreso actualizado', 'Los cambios se guardaron correctamente');
-    closeModal('modal-editar-ing-alimento');
-    loadIngAlimento();
-    loadStockAlimento();
-  } catch (err) {
-    const msg = err?.message || 'Error desconocido';
-    if (errBox && errText) {
-      errText.textContent = `No se pudo actualizar: ${msg}`;
-      errBox.style.display = '';
-    }
-    toast('❌', 'Error al actualizar', msg, 't-warn');
-  }
-}
-
-async function deleteIngAlimento() {
-  const id = v('eia-id');
-  const nombreAlimento = document.getElementById('eia-tipo-display').value;
-  
-  const confirmDelete = confirm(`⚠️ ADVERTENCIA DE ELIMINACIÓN\n\n¿Estás seguro de que deseas eliminar este ingreso de "${nombreAlimento}"?\n\nEsta acción no se puede deshacer.`);
-  if (!confirmDelete) return;
-
-  try {
-    await fetch(S.apiBase + '/ing-alimento/' + id, { method: 'DELETE' });
-    toast('✅', 'Ingreso eliminado', 'El registro ha sido eliminado correctamente');
-    closeModal('modal-editar-ing-alimento');
-    loadIngAlimento();
-    loadStockAlimento();
-  } catch (err) {
-    toast('❌', 'Error al eliminar', 'No se pudo eliminar el ingreso', 't-warn');
-  }
-}
-
 function postTipoMed() {
   doPost('/tipo-medicamento',
       { nombre: v('tm-nombre'), descripcion_medi: v('tm-desc') },

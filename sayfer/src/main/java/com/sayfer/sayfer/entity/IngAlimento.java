@@ -28,10 +28,19 @@ public class IngAlimento {
     @Column(name = "fecha_ingreso", nullable = false)
     private LocalDate fecha_ingreso;
 
-    @Column(name = "valor_total", precision = 10, scale = 2)
+    @Column(name = "largo", nullable = false)
+    private LocalDate largo;
+
+    @Column(name = "ancho", nullable = false)
+    private LocalDate ancho;
+
+    @Column(name = "dimension", largo*ancho)
+    private LocalDate dimension;
+
+    @Column(name = "valor_total", precision = 10, scale = 2, nullable = false)
     private BigDecimal valor_total;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_alimento")
     private TipoAlimento id_tipo_alimento;
 }
