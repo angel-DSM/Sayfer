@@ -13,6 +13,7 @@ public class StockAlimentoDTO {
 
     private Integer id_stock_alimento;
     private Long cantidad;
+    private String nombre_alimento;
     private TipoAlimentoDTO id_tipo_alimento;
     private UnidadMedidaDTO id_unidad;
 
