@@ -36,7 +36,7 @@ public class AdmiMedicamento {
     private Usuario id_usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_unidad", nullable = false)
+    @JoinColumn(name = "id_unidad", nullable = true)
     private UnidadMedida id_unidad;
 
     @ManyToOne(fetch = FetchType.LAZY)

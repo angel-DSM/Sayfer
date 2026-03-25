@@ -16,6 +16,7 @@ public class GalponMapper extends GenericMapper<Galpon, GalponDTO>{
                 .id_galpon(entity.getId_galpon())
                 .nombre(entity.getNombre())
                 .capacidad(entity.getCapacidad())
+                .metros_cuadrados(entity.getMetros_cuadrados())
                 .build();
     }
 
@@ -28,6 +29,7 @@ public class GalponMapper extends GenericMapper<Galpon, GalponDTO>{
                 .id_galpon(dto.getId_galpon())
                 .nombre(dto.getNombre())
                 .capacidad(dto.getCapacidad())
+                .metros_cuadrados(dto.getMetros_cuadrados())
                 .build();
     }
 }

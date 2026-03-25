@@ -25,4 +25,7 @@ public class Galpon {
     @Column(name = "capacidad", precision = 10, nullable = false)
     private Long capacidad;
 
+    @Column(name = "metros_cuadrados", precision = 10, scale = 2)
+    private java.math.BigDecimal metros_cuadrados;
+
 }

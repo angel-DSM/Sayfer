@@ -11,7 +11,7 @@ public class IngMedicamentoValidator {
         if (r.getFecha_ingreso() == null){
             throw new ValidateException("La fecha de ingreso es obligatoria");
     }
-        if (r.getValor_total() == null || r.getValor_total().compareTo(BigDecimal.ZERO) <= 0){
+        if (r.getValor_total() != null && r.getValor_total().compareTo(BigDecimal.ZERO) <= 0){
             throw new ValidateException("El valor total debe ser mayor a cero");
     }
         if (r.getId_tipo_medicamento() == null) {

@@ -24,5 +24,10 @@ public class CicloProduccion {
 
     @Column(name = "nombre_ciclo", length = 20, nullable = false)
     private String nombreCiclo;
-//es la nomenglatura de ciclo 2025/4
+
+    @Column(name = "fecha_inicio")
+    private java.time.LocalDate fecha_inicio;
+
+    @Column(name = "fecha_fin")
+    private java.time.LocalDate fecha_fin;
 }

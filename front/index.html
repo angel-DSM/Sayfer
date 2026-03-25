@@ -811,12 +811,57 @@
 ═══════════════════════════════════════ -->
 
 <!-- Galpón -->
+<!-- Editar Galpón -->
+<div class="modal-overlay" id="modal-editar-galpon">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Galpón</div><button class="modal-close" onclick="closeModal('modal-editar-galpon')">✕</button></div>
+    <div class="form-grid">
+      <div class="fgroup full"><label>Nombre</label><input id="eg-nombre" type="text"></div>
+      <div class="fgroup"><label>Metros cuadrados (m²)</label><input id="eg-metros" type="number" step="0.01" onkeydown="onlyNumbers(event)" oninput="calcSugerenciaGalponEdit()"></div>
+      <div class="fgroup"><label>Capacidad (pollos)</label><input id="eg-capacidad" type="number" onkeydown="onlyNumbers(event)" oninput="checkCapacidadGalponEdit()"></div>
+      <div class="fgroup full" id="eg-sugerencia" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text3)">
+          💡 Sugerencia: <span id="eg-sugerencia-val" style="font-weight:600;color:var(--text)">—</span> pollos <span style="font-size:11px">(10 pollos/m²)</span>
+        </div>
+      </div>
+      <div class="fgroup full" id="eg-alerta" style="display:none">
+        <div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e">
+          ⚠️ La cantidad supera la capacidad recomendada. Puedes continuar.
+        </div>
+      </div>
+      <input type="hidden" id="eg-id">
+      <div id="eg-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="eg-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-galpon')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateGalpon()">Guardar Cambios</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteGalpon()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-galpon">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Galpón</div><button class="modal-close" onclick="closeModal('modal-galpon')">✕</button></div>
     <div class="form-grid">
       <div class="fgroup full"><label>Nombre</label><input id="g-nombre" type="text" placeholder="Galpón Norte 1"></div>
-      <div class="fgroup full"><label>Capacidad (aves)</label><input id="g-capacidad" type="number" placeholder="12000"></div>
+      <div class="fgroup"><label>Metros cuadrados (m²)</label><input id="g-metros" type="number" step="0.01" placeholder="500" onkeydown="onlyNumbers(event)" oninput="calcSugerenciaGalpon()"></div>
+      <div class="fgroup"><label>Capacidad (pollos)</label><input id="g-capacidad" type="number" placeholder="—" onkeydown="onlyNumbers(event)" oninput="checkCapacidadGalpon()"></div>
+      <div class="fgroup full" id="g-sugerencia" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text3)">
+          💡 Sugerencia: <span id="g-sugerencia-val" style="font-weight:600;color:var(--text)">—</span> pollos <span style="font-size:11px">(10 pollos/m²)</span>
+        </div>
+      </div>
+      <div class="fgroup full" id="g-alerta" style="display:none">
+        <div style="background:#fff8e1;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400e">
+          ⚠️ La cantidad ingresada supera la capacidad recomendada. Puedes continuar, pero puede afectar el bienestar de las aves.
+        </div>
+      </div>
+      <div id="g-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="g-error-text"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-galpon')">Cancelar</button>
@@ -826,17 +871,48 @@
 </div>
 
 <!-- Ciclo -->
+<!-- Editar Ciclo -->
+<div class="modal-overlay" id="modal-editar-ciclo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Ciclo de Producción</div><button class="modal-close" onclick="closeModal('modal-editar-ciclo')">✕</button></div>
+    <div class="form-grid">
+      <div class="fgroup full"><label>Nombre del Ciclo</label><input id="ec-nombre" type="text"></div>
+      <div class="fgroup"><label>Fecha Inicio</label><input id="ec-inicio" type="date" disabled style="background:var(--bg2)"></div>
+      <div class="fgroup"><label>Fecha Fin</label><input id="ec-fin" type="date"></div>
+      <input type="hidden" id="ec-id">
+      <div id="ec-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="ec-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-ciclo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateCiclo()">Guardar Cambios</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteCiclo()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-ciclo">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Ciclo de Producción</div><button class="modal-close" onclick="closeModal('modal-ciclo')">✕</button></div>
-    <div class="form-grid">
+    <div id="ciclo-sin-galpones" style="display:none;padding:20px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">🏠</div>
+      <div style="font-weight:600;margin-bottom:4px">No hay galpones registrados</div>
+      <div style="color:var(--text3);font-size:13px;margin-bottom:16px">Debes crear al menos un galpón antes de iniciar un ciclo de producción.</div>
+      <button class="btn btn-primary" onclick="closeModal('modal-ciclo');openModal('modal-galpon')">+ Crear Galpón</button>
+    </div>
+    <div id="ciclo-form" class="form-grid">
       <div class="fgroup full"><label>Nombre del Ciclo</label><input id="c-nombre" type="text" placeholder="Ciclo 2026-A"></div>
+      <div class="fgroup full"><label>Galpón</label><select id="c-galpon"></select></div>
       <div class="fgroup"><label>Fecha Inicio</label><input id="c-inicio" type="date"></div>
       <div class="fgroup"><label>Fecha Fin (opcional)</label><input id="c-fin" type="date"></div>
+      <div id="c-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="c-error-text"></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-ciclo')">Cancelar</button>
-      <button class="btn btn-primary" onclick="postCiclo()">Guardar</button>
+      <button class="btn btn-primary" id="ciclo-guardar-btn" onclick="postCiclo()">Guardar</button>
     </div>
   </div>
 </div>

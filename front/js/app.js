@@ -356,16 +356,40 @@ function populateSelects(modalId) {
     sel('aa-tipo',    ta, 'id_tipo_alimento', x => x.nombre_alimento);
     sel('aa-galpon',  g,  'id_galpon',        x => `${x.id_galpon} — ${x.nombre}`);
     sel('aa-ciclo',   c,  'id_ciclo',         x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
-    sel('aa-usuario', u,  'id_usuario',       x => `${x.nombre} ${x.apellido}`);
+    sel('aa-usuario', u,  'cedula',            x => `${x.nombre} ${x.apellido}`);
     document.getElementById('aa-fecha').value = today();
   }
   if (modalId === 'modal-adm-med') {
     sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
     sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
     sel('am-ciclo',   c,  'id_ciclo',            x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
-    sel('am-usuario', u,  'id_usuario',          x => `${x.nombre} ${x.apellido}`);
+    sel('am-usuario', u,  'cedula',               x => `${x.nombre} ${x.apellido}`);
     sel('am-unidad',  un, 'id_unidad',           x => x.nombre_unidad);
     document.getElementById('am-fecha').value = today();
+  }
+  if (modalId === 'modal-galpon') {
+    ['g-nombre','g-metros','g-capacidad'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['g-sugerencia','g-alerta','g-error-msg'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+    document.getElementById('g-capacidad').placeholder = '—';
+  }
+  if (modalId === 'modal-ciclo') {
+    const galpones = S.galpones || [];
+    const sinGalpones = document.getElementById('ciclo-sin-galpones');
+    const cicloForm   = document.getElementById('ciclo-form');
+    const guardarBtn  = document.getElementById('ciclo-guardar-btn');
+    if (galpones.length === 0) {
+      sinGalpones.style.display = '';
+      cicloForm.style.display = 'none';
+      guardarBtn.style.display = 'none';
+    } else {
+      sinGalpones.style.display = 'none';
+      cicloForm.style.display = '';
+      guardarBtn.style.display = '';
+      sel('c-galpon', galpones, 'id_galpon', x => `${x.nombre || 'Galpón'} (ID: ${x.id_galpon})`);
+      document.getElementById('c-inicio').value = today();
+    }
+    const errBox = document.getElementById('c-error-msg');
+    if (errBox) errBox.style.display = 'none';
   }
   if (modalId === 'modal-editar-tipos-med') { loadEditarTiposMed(); }
   if (modalId === 'modal-editar-tipos-alimento') {
@@ -496,7 +520,7 @@ async function loadDashboard() {
   const bajas7dias = mort.slice(0,7).reduce((a,m) => a + m.cantidad_muertos, 0);
 
   document.getElementById('s-galpones').textContent      = S.galpones.length;
-  document.getElementById('s-ciclos').textContent        = S.ciclos.filter(c => !c.fecha_fin).length;
+  document.getElementById('s-ciclos').textContent        = S.ciclos.filter(c => !c.fecha_fin || c.fecha_fin > today()).length;
   document.getElementById('s-muertos-hoy').textContent   = bajasHoy;
   document.getElementById('s-muertos-nota').textContent  = `${bajas7dias} en últimos 7 días`;
   document.getElementById('s-tipos-alimento').textContent= S.tiposAlimento.length;
@@ -509,7 +533,7 @@ async function loadDashboard() {
       <td>${c.nombre_ciclo || '—'}</td>
       <td class="mono">${c.fecha_inicio}</td>
       <td class="mono">${c.fecha_fin || '—'}</td>
-      <td>${c.fecha_fin
+      <td>${c.fecha_fin && c.fecha_fin <= today()
       ? '<span class="badge badge-gray">Cerrado</span>'
       : '<span class="badge badge-green">● Activo</span>'}</td>
     </tr>`).join('');
@@ -567,35 +591,195 @@ async function loadDashboard() {
 // ─── GALPONES ─────────────────────────────────────────────
 async function loadGalpones() {
   S.galpones = await tryGet('/galpon', 'galpones');
-  document.getElementById('galpones-tbody').innerHTML = S.galpones.map(g => `
-    <tr>
+  const vinculos = await tryGet('/galpon-ciclo-produccion', 'galponCiclos');
+  document.getElementById('galpones-tbody').innerHTML = S.galpones.map(g => {
+    const ciclosCount = vinculos.filter(v => v.id_galpon?.id_galpon === g.id_galpon).length;
+    return `<tr>
       <td class="mono">${g.id_galpon}</td>
       <td>${g.nombre}</td>
-      <td>${g.capacidad?.toLocaleString()}</td>
-      <td>${S.ciclos.length} ciclos</td>
-      ${isAdmin() ? `<td><button class="btn btn-secondary btn-sm">✏️ Editar</button></td>` : '<td>—</td>'}
-    </tr>`).join('');
+      <td class="mono">${g.capacidad?.toLocaleString() || '—'}</td>
+      <td class="mono">${ciclosCount} ciclo${ciclosCount !== 1 ? 's' : ''}</td>
+      ${isAdmin() ? `<td><button class="btn-icon" onclick="prepareEditGalpon(${g.id_galpon})" title="Editar">✏️</button></td>` : '<td>—</td>'}
+    </tr>`;
+  }).join('');
+}
+
+
+// ─── EDITAR GALPÓN ───────────────────────────────────────
+function calcSugerenciaGalponEdit() {
+  const metros = +document.getElementById('eg-metros').value;
+  const sug = document.getElementById('eg-sugerencia');
+  const sugVal = document.getElementById('eg-sugerencia-val');
+  if (metros > 0) {
+    const max = Math.round(metros * 10);
+    sugVal.textContent = max.toLocaleString();
+    sug.style.display = '';
+    checkCapacidadGalponEdit();
+  } else {
+    sug.style.display = 'none';
+    document.getElementById('eg-alerta').style.display = 'none';
+  }
+}
+
+function checkCapacidadGalponEdit() {
+  const metros = +document.getElementById('eg-metros').value;
+  const cap = +document.getElementById('eg-capacidad').value;
+  document.getElementById('eg-alerta').style.display =
+    metros > 0 && cap > 0 && cap > metros * 10 ? '' : 'none';
+}
+
+function prepareEditGalpon(id) {
+  const g = S.galpones.find(x => x.id_galpon === id);
+  if (!g) { toast('\u274C', 'Galpón no encontrado', '', 't-warn'); return; }
+  document.getElementById('eg-id').value        = g.id_galpon;
+  document.getElementById('eg-nombre').value    = g.nombre || '';
+  document.getElementById('eg-metros').value    = g.metros_cuadrados || '';
+  document.getElementById('eg-capacidad').value = g.capacidad || '';
+  ['eg-sugerencia','eg-alerta','eg-error-msg'].forEach(function(eid) {
+    const el = document.getElementById(eid); if(el) el.style.display = 'none';
+  });
+  if (g.metros_cuadrados) calcSugerenciaGalponEdit();
+  openModal('modal-editar-galpon');
+}
+
+async function updateGalpon() {
+  const errBox  = document.getElementById('eg-error-msg');
+  const errText = document.getElementById('eg-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const id       = document.getElementById('eg-id').value;
+  const nombre   = document.getElementById('eg-nombre').value.trim();
+  const capacidad = +document.getElementById('eg-capacidad').value;
+  const metrosVal = document.getElementById('eg-metros').value;
+  const metros   = metrosVal ? +metrosVal : null;
+
+  if (!nombre) {
+    if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!capacidad || capacidad <= 0) {
+    if (errBox && errText) { errText.textContent = 'La capacidad debe ser mayor a 0.'; errBox.style.display = ''; }
+    return;
+  }
+
+  try {
+    const r = await fetch(S.apiBase + '/galpon/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nombre, capacidad: capacidad, metros_cuadrados: metros })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al actualizar.'; errBox.style.display = ''; }
+      return;
+    }
+    toast('\u2705', 'Galpón actualizado');
+    closeModal('modal-editar-galpon');
+    loadGalpones();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar.'; errBox.style.display = ''; }
+  }
+}
+
+async function deleteGalpon() {
+  const id     = document.getElementById('eg-id').value;
+  const nombre = document.getElementById('eg-nombre').value;
+  if (!confirm('\u26A0\uFE0F \u00BFEliminar el galpón "' + nombre + '"?\n\nEsta acción eliminará todos sus vínculos con ciclos.')) return;
+  try {
+    const r = await fetch(S.apiBase + '/galpon/' + id, { method: 'DELETE' });
+    if (!r.ok) { toast('\u274C', 'No se pudo eliminar', 'El galpón puede tener registros asociados.', 't-error'); return; }
+    toast('\u2705', 'Galpón eliminado');
+    closeModal('modal-editar-galpon');
+    loadGalpones();
+  } catch {
+    toast('\u274C', 'Error al eliminar', '', 't-error');
+  }
 }
 
 // ─── CICLOS DE PRODUCCIÓN ─────────────────────────────────
 async function loadCiclos() {
   S.ciclos = await tryGet('/ciclo-produccion', 'ciclos');
   document.getElementById('ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    const ini  = new Date(c.fecha_inicio);
+    const ini  = c.fecha_inicio ? new Date(c.fecha_inicio) : null;
     const fin  = c.fecha_fin ? new Date(c.fecha_fin) : new Date();
-    const dias = Math.round((fin - ini) / (1000 * 60 * 60 * 24));
+    const dias = ini ? Math.round((fin - ini) / (1000 * 60 * 60 * 24)) : '—';
     return `<tr>
-      <td class="mono">${c.id_ciclo}</td>
-      <td>${c.nombre_ciclo || '—'}</td>
-      <td class="mono">${c.fecha_inicio}</td>
+      <td class="mono">${c.id}</td>
+      <td>${c.nombreCiclo || '—'}</td>
+      <td class="mono">${c.fecha_inicio || '—'}</td>
       <td class="mono">${c.fecha_fin || 'En curso'}</td>
       <td class="mono">${dias} días</td>
-      <td>${c.fecha_fin
+      <td>${c.fecha_fin && c.fecha_fin <= today()
         ? '<span class="badge badge-gray">Cerrado</span>'
         : '<span class="badge badge-green">● Activo</span>'}</td>
-      ${isAdmin() ? `<td><button class="btn btn-secondary btn-sm">✏️</button></td>` : '<td>—</td>'}
+      ${isAdmin() ? `<td><button class="btn-icon" onclick="prepareEditCiclo(${c.id})" title="Editar">✏️</button></td>` : '<td>—</td>'}
     </tr>`;
   }).join('');
+}
+
+
+// ─── EDITAR / ELIMINAR CICLO ──────────────────────────────
+function prepareEditCiclo(id) {
+  const ciclo = S.ciclos.find(c => c.id === id);
+  if (!ciclo) { toast('❌', 'Ciclo no encontrado', '', 't-warn'); return; }
+  document.getElementById('ec-id').value     = ciclo.id;
+  document.getElementById('ec-nombre').value = ciclo.nombreCiclo || '';
+  document.getElementById('ec-inicio').value = ciclo.fecha_inicio || '';
+  document.getElementById('ec-fin').value    = ciclo.fecha_fin || '';
+  const errBox = document.getElementById('ec-error-msg');
+  if (errBox) errBox.style.display = 'none';
+  openModal('modal-editar-ciclo');
+}
+
+async function updateCiclo() {
+  const errBox  = document.getElementById('ec-error-msg');
+  const errText = document.getElementById('ec-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const id     = v('ec-id');
+  const nombre = v('ec-nombre')?.trim();
+  const inicio = v('ec-inicio');
+  const fin    = v('ec-fin');
+
+  if (!nombre) {
+    if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
+    return;
+  }
+  if (fin && inicio && fin < inicio) {
+    if (errBox && errText) { errText.textContent = 'La fecha de fin no puede ser anterior a la de inicio.'; errBox.style.display = ''; }
+    return;
+  }
+
+  try {
+    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombreCiclo: nombre, fecha_inicio: inicio || null, fecha_fin: fin || null })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al actualizar.'; errBox.style.display = ''; }
+      return;
+    }
+    toast('✅', 'Ciclo actualizado');
+    closeModal('modal-editar-ciclo');
+    loadCiclos();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar.'; errBox.style.display = ''; }
+  }
+}
+
+async function deleteCiclo() {
+  const id     = v('ec-id');
+  const nombre = v('ec-nombre');
+  if (!confirm(`⚠️ ¿Eliminar el ciclo "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, { method: 'DELETE' });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', 'El ciclo puede tener registros asociados.', 't-error'); return; }
+    toast('✅', 'Ciclo eliminado');
+    closeModal('modal-editar-ciclo');
+    loadCiclos();
+  } catch {
+    toast('❌', 'Error al eliminar', '', 't-error');
+  }
 }
 
 // ─── ALIMENTO ─────────────────────────────────────────────
@@ -860,15 +1044,131 @@ async function doPut(path, payload, modalId, reloadFn, label) {
 // Helpers de lectura de inputs
 function v(id) { return document.getElementById(id)?.value || ''; }
 
-function postGalpon() {
-  doPost('/galpon',
-      { nombre: v('g-nombre'), capacidad: +v('g-capacidad') },
-      'modal-galpon', loadGalpones, 'Galpón');
+function calcSugerenciaGalpon() {
+  const metros = +v('g-metros');
+  const sugerencia = document.getElementById('g-sugerencia');
+  const sugerenciaVal = document.getElementById('g-sugerencia-val');
+  if (metros > 0) {
+    const max = Math.round(metros * 10);
+    sugerenciaVal.textContent = max.toLocaleString();
+    sugerencia.style.display = '';
+    document.getElementById('g-capacidad').placeholder = max;
+    checkCapacidadGalpon();
+  } else {
+    sugerencia.style.display = 'none';
+    document.getElementById('g-alerta').style.display = 'none';
+    document.getElementById('g-capacidad').placeholder = '—';
+  }
 }
-function postCiclo() {
-  doPost('/ciclo-produccion',
-      { nombreCiclo: v('c-nombre'), fecha_inicio: v('c-inicio'), fecha_fin: v('c-fin') || null },
-      'modal-ciclo', loadCiclos, 'Ciclo');
+
+function checkCapacidadGalpon() {
+  const metros = +v('g-metros');
+  const capacidad = +v('g-capacidad');
+  const alerta = document.getElementById('g-alerta');
+  if (metros > 0 && capacidad > 0 && capacidad > metros * 10) {
+    alerta.style.display = '';
+  } else {
+    alerta.style.display = 'none';
+  }
+}
+
+async function postGalpon() {
+  const errBox  = document.getElementById('g-error-msg');
+  const errText = document.getElementById('g-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const nombre   = v('g-nombre')?.trim();
+  const capacidad = +v('g-capacidad');
+  const metros   = v('g-metros') ? +v('g-metros') : null;
+
+  if (!nombre) {
+    if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!capacidad || capacidad <= 0) {
+    if (errBox && errText) { errText.textContent = 'Ingresa la capacidad de pollos.'; errBox.style.display = ''; }
+    return;
+  }
+
+  try {
+    const r = await fetch(S.apiBase + '/galpon', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, capacidad, metros_cuadrados: metros })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al guardar el galpón.'; errBox.style.display = ''; }
+      return;
+    }
+    toast('✅', 'Galpón creado');
+    closeModal('modal-galpon');
+    loadGalpones();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
+  }
+}
+async function postCiclo() {
+  const errBox  = document.getElementById('c-error-msg');
+  const errText = document.getElementById('c-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const nombre  = v('c-nombre')?.trim();
+  const galponId = v('c-galpon');
+  const inicio  = v('c-inicio');
+
+  if (!nombre) {
+    if (errBox && errText) { errText.textContent = 'El nombre del ciclo es obligatorio.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!galponId) {
+    if (errBox && errText) { errText.textContent = 'Debes seleccionar un galpón.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!inicio) {
+    if (errBox && errText) { errText.textContent = 'La fecha de inicio es obligatoria.'; errBox.style.display = ''; }
+    return;
+  }
+  const fin = v('c-fin');
+  if (fin && fin < inicio) {
+    if (errBox && errText) { errText.textContent = 'La fecha de fin no puede ser anterior a la fecha de inicio.'; errBox.style.display = ''; }
+    return;
+  }
+
+  try {
+    // Paso 1: crear el ciclo
+    const rCiclo = await fetch(S.apiBase + '/ciclo-produccion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombreCiclo: nombre, fecha_inicio: inicio, fecha_fin: v('c-fin') || null })
+    });
+    if (!rCiclo.ok) {
+      const err = await rCiclo.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || 'Error al crear el ciclo.'; errBox.style.display = ''; }
+      return;
+    }
+    const cicloData = await rCiclo.json();
+    const cicloId = cicloData?.data?.id;
+
+    // Paso 2: asociar galpón al ciclo
+    const rAsoc = await fetch(S.apiBase + '/galpon-ciclo-produccion', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fecha_inicio: inicio,
+        fecha_fin: v('c-fin') || null,
+        id_galpon: { id_galpon: +galponId },
+        id_ciclo:  { id: cicloId }
+      })
+    });
+    if (!rAsoc.ok) {
+      if (errBox && errText) { errText.textContent = 'Ciclo creado pero no se pudo asociar el galpón.'; errBox.style.display = ''; }
+      return;
+    }
+
+    toast('✅', 'Ciclo creado', `${nombre} asociado al galpón seleccionado`);
+    closeModal('modal-ciclo');
+    loadCiclos();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
+  }
 }
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');
@@ -1144,15 +1444,53 @@ async function postTipoMed() {
     if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
   }
 }
-function postIngMed() {
-  doPost('/ing-medicamento',
-      {
-        id_tipo_medicamento: { id_tipo_medicamento: +v('im-tipo') },
-        cantidad:            +v('im-cantidad'),
-        fecha_ingreso:       v('im-fecha'),
-        valor_total:         +v('im-vtotal')
-      },
-      'modal-ing-med', () => { loadIngMed(); loadStockMed(); }, 'Ingreso Medicamento');
+async function postIngMed() {
+  const errBox  = document.getElementById('im-error-msg');
+  const errText = document.getElementById('im-error-text');
+  if (errBox) errBox.style.display = 'none';
+
+  const tipoId   = v('im-tipo');
+  const cantidad = v('im-cantidad');
+  const fecha    = v('im-fecha');
+
+  if (!tipoId) {
+    if (errBox && errText) { errText.textContent = 'Selecciona un tipo de medicamento.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!cantidad || +cantidad <= 0) {
+    if (errBox && errText) { errText.textContent = 'La cantidad debe ser mayor a 0.'; errBox.style.display = ''; }
+    return;
+  }
+  if (!fecha) {
+    if (errBox && errText) { errText.textContent = 'La fecha de ingreso es obligatoria.'; errBox.style.display = ''; }
+    return;
+  }
+
+  const vtotal = v('im-vtotal');
+  const payload = {
+    id_tipo_medicamento: { id_tipo_medicamento: +tipoId },
+    cantidad:    +cantidad,
+    fecha_ingreso: fecha,
+    valor_total: vtotal && +vtotal > 0 ? +vtotal : null
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/ing-medicamento', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (errBox && errText) { errText.textContent = err.message || `Error ${r.status} al registrar.`; errBox.style.display = ''; }
+      return;
+    }
+    toast('✅', 'Ingreso registrado');
+    closeModal('modal-ing-med');
+    loadIngMed();
+    loadStockMed();
+  } catch {
+    if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
+  }
 }
 
 // ─── EDITAR TIPOS MEDICAMENTO ─────────────────────────────

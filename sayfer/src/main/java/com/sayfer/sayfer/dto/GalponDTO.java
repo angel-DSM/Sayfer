@@ -14,4 +14,5 @@ public class GalponDTO {
     private String nombre;
 
     private Long capacidad;
+    private java.math.BigDecimal metros_cuadrados;
 }

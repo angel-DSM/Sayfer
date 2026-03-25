@@ -53,11 +53,11 @@ public class AdmiMedicamentoServiceImplementation implements AdminMedicamentoSer
         AdmiMedicamentoValidator.validate(obj);
         AdmiMedicamento entidad = mapper.toEntity(obj);
 
-        if (entidad.getTipo_medicamento() != null && obj.getCantidad_utilizada_medi() != null) {
+        if (entidad.getTipo_medicamento() != null && obj.getCantidad_utilizada() != null) {
             Optional<StockMedicamento> stockOpt = stockRepository.findByIdTipoMedicamento(entidad.getTipo_medicamento());
             if (stockOpt.isPresent()) {
                 StockMedicamento stock = stockOpt.get();
-                java.math.BigDecimal nuevo = stock.getCantidadActual().subtract(obj.getCantidad_utilizada_medi());
+                java.math.BigDecimal nuevo = stock.getCantidadActual().subtract(obj.getCantidad_utilizada());
                 if (nuevo.compareTo(java.math.BigDecimal.ZERO) < 0) {
                     throw new ValidateException("Stock insuficiente. Disponible: " + stock.getCantidadActual());
                 }

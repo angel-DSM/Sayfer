@@ -10,7 +10,7 @@ public class AdmiMedicamentoValidator {
 
     public static void validate(AdmiMedicamentoDTO register) {
 
-        if (register.getCantidad_utilizada_medi() == null || register.getCantidad_utilizada_medi().compareTo(BigDecimal.ZERO)<=0) {
+        if (register.getCantidad_utilizada() == null || register.getCantidad_utilizada().compareTo(BigDecimal.ZERO)<=0) {
             throw new ValidateException("La cantidad debe ser mayor a cero");
         }
 

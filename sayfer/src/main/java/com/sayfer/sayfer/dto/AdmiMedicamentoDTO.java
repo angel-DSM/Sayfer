@@ -1,9 +1,6 @@
 package com.sayfer.sayfer.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.sayfer.sayfer.entity.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -13,14 +10,16 @@ import java.time.LocalDate;
 @Setter
 @Getter
 public class AdmiMedicamentoDTO {
-
     private Integer id_admi_medicamento;
-    private BigDecimal cantidad_utilizada_medi;
+    private BigDecimal cantidad_utilizada;
     private LocalDate fecha_medicacion;
-    private TipoMedicamento tipo_medicamento;
-    private Usuario id_usuario;
-    private UnidadMedida id_unidad;
-    private CicloProduccion id_ciclo;
-    private Galpon id_galpon;
-
+    private Integer id_tipo_medicamento;
+    private Integer id_galpon;
+    private Integer id_ciclo;
+    private Long id_usuario;
+    // Display fields (populated by toDTO for GET responses)
+    private String nombre_med;
+    private String nombre_galpon;
+    private String nombre_ciclo;
+    private String nombre_usuario;
 }
