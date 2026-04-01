@@ -1,8 +1,5 @@
 package com.sayfer.sayfer.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.sayfer.sayfer.entity.CicloProduccion;
-import com.sayfer.sayfer.entity.Galpon;
 import lombok.*;
 
 import java.time.LocalDate;
