@@ -4,20 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SAYFER — Gestión Avícola</title>
-
-  <!-- Fuentes -->
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-  <!-- Estilos del sistema -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════
-     PANTALLA DE LOGIN
-═══════════════════════════════════════ -->
+<!-- ── PANTALLA DE LOGIN ── -->
 <div id="login-screen">
-
   <!-- ── Panel izquierdo ── -->
   <div class="login-left">
     <div class="login-left-content">
@@ -489,9 +482,9 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>ID</th><th>Nombre</th><th>galpon</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="ciclos-tbody">
-          <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -892,31 +885,57 @@
   </div>
 </div>
 
+<!-- ── NUEVO CICLO ── -->
 <div class="modal-overlay" id="modal-ciclo">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Nuevo Ciclo de Producción</div><button class="modal-close" onclick="closeModal('modal-ciclo')">✕</button></div>
-    <div id="ciclo-sin-galpones" style="display:none;padding:20px;text-align:center">
-      <div style="font-size:32px;margin-bottom:8px">🏠</div>
-      <div style="font-weight:600;margin-bottom:4px">No hay galpones registrados</div>
-      <div style="color:var(--text3);font-size:13px;margin-bottom:16px">Debes crear al menos un galpón antes de iniciar un ciclo de producción.</div>
-      <button class="btn btn-primary" onclick="closeModal('modal-ciclo');openModal('modal-galpon')">+ Crear Galpón</button>
+    <div class="modal-header">
+      <div class="modal-title">Nuevo Ciclo de Producción</div>
+      <button class="modal-close" onclick="closeModal('modal-ciclo')">✕</button>
     </div>
-    <div id="ciclo-form" class="form-grid">
-      <div class="fgroup full"><label>Nombre del Ciclo</label><input id="c-nombre" type="text" placeholder="Ciclo 2026-A"></div>
-      <div class="fgroup full"><label>Galpón</label><select id="c-galpon"></select></div>
-      <div class="fgroup"><label>Fecha Inicio</label><input id="c-inicio" type="date"></div>
-      <div class="fgroup"><label>Fecha Fin (opcional)</label><input id="c-fin" type="date"></div>
-      <div id="c-error-msg" class="fgroup full" style="display:none">
-        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="c-error-text"></div>
+    <div class="form-grid">
+
+      <div class="fgroup full">
+        <label>Nombre del Ciclo</label>
+        <input id="c-nombre" type="text" placeholder="Ciclo 2026-A">
       </div>
+
+      <div class="fgroup">
+        <label>Fecha Inicio</label>
+        <input id="c-inicio" type="date">
+      </div>
+      <div class="fgroup">
+        <label>Fecha Fin (opcional)</label>
+        <input id="c-fin" type="date">
+      </div>
+
+      <!-- Selección múltiple de galpones -->
+      <div class="fgroup full">
+        <label>Galpones</label>
+        <div id="c-galpon-lista" style="
+    max-height: 160px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg2);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  ">
+          <!-- se llena dinámicamente desde JS -->
+        </div>
+        <div id="c-galpon-preview" style="margin-top:6px;font-size:12px;color:var(--text3)">
+          Ningún galpón seleccionado
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-ciclo')">Cancelar</button>
-      <button class="btn btn-primary" id="ciclo-guardar-btn" onclick="postCiclo()">Guardar</button>
+      <button class="btn btn-primary" onclick="postCiclo()">Guardar</button>
     </div>
   </div>
 </div>
-
 <!-- Tipo Alimento -->
 <div class="modal-overlay" id="modal-tipo-alimento">
   <div class="modal">

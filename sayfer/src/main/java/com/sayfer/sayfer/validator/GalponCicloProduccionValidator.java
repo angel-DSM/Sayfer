@@ -9,8 +9,10 @@ public class GalponCicloProduccionValidator {
         if(register.getFecha_inicio() == null){
             throw new ValidateException("se requiere fecha de inicio");
         }
-        if(register.getFecha_fin() == null){
-            throw new ValidateException("se requiere fecha de fin");
+        if (register.getFecha_fin() != null &&
+                register.getFecha_fin().isBefore(register.getFecha_inicio())) {
+            throw new ValidateException("La fecha de fin debe ser posterior a la fecha de inicio");
         }
+
     }
 }

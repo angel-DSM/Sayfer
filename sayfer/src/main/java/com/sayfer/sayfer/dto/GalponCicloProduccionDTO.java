@@ -18,7 +18,7 @@ public class GalponCicloProduccionDTO {
     private Integer id_galpon_ciclo_produccion;
     private LocalDate fecha_inicio;
     private LocalDate fecha_fin;
-    private Galpon id_galpon;
-    private CicloProduccion id_ciclo;
+    private GalponDTO        id_galpon;
+    private CicloProduccionDTO id_ciclo;
 
 }

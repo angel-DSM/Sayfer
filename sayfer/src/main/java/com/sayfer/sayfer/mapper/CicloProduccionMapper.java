@@ -14,8 +14,6 @@ public class CicloProduccionMapper extends GenericMapper<CicloProduccion, CicloP
         return CicloProduccionDTO.builder()
                 .id(entity.getId())
                 .nombreCiclo(entity.getNombreCiclo())
-                .fecha_inicio(entity.getFecha_inicio())
-                .fecha_fin(entity.getFecha_fin())
                 .build();
     }
 
@@ -27,8 +25,6 @@ public class CicloProduccionMapper extends GenericMapper<CicloProduccion, CicloP
         return CicloProduccion.builder()
                 .id(dto.getId())
                 .nombreCiclo(dto.getNombreCiclo())
-                .fecha_inicio(dto.getFecha_inicio())
-                .fecha_fin(dto.getFecha_fin())
                 .build();
     }
 }

@@ -20,6 +20,7 @@ const S = {
   tiposMed:     [],
   tiposMuerte:  [],
   usuarios:     [],
+  vinculos: [],
   unidades:     []
 };
 
@@ -333,11 +334,26 @@ function populateSelects(modalId) {
   const { galpones: g, ciclos: c, tiposAlimento: ta,
     tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
 
-  if (modalId === 'modal-mortalidad') {
-    sel('mo-ciclo',      c,   'id_ciclo',          x => `${x.id_ciclo} — ${x.nombre_ciclo||'Sin nombre'}`);
-    sel('mo-galpon',     g,   'id_galpon',          x => `${x.id_galpon} — ${x.nombre}`);
-    sel('mo-tipo-muerte',tmu, 'id_tipo_muerte',     x => x.nombre);
-    document.getElementById('mo-fecha').value = today();
+  if (modalId === 'modal-ciclo') {
+    // Renderizar checkboxes en vez de <select multiple>
+    const lista = document.getElementById('c-galpon-lista');
+    lista.innerHTML = g.length === 0
+        ? '<span style="color:var(--text3);font-size:12px">No hay galpones registrados</span>'
+        : g.map(x => `
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+          <input type="checkbox" value="${x.id_galpon}"
+            style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:pointer"
+            onchange="updateGalponPreview()">
+          <span>${x.nombre}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text3)">${x.capacidad?.toLocaleString() || ''} aves</span>
+        </label>`
+        ).join('');
+
+    // Limpiar campos
+    document.getElementById('c-nombre').value = '';
+    document.getElementById('c-inicio').value = today();
+    document.getElementById('c-fin').value    = '';
+    document.getElementById('c-galpon-preview').textContent = 'Ningún galpón seleccionado';
   }
   if (modalId === 'modal-ing-alimento') {
     sel('ia-tipo', ta, 'id_tipo_alimento', x => x.nombre_alimento);
@@ -526,17 +542,25 @@ async function loadDashboard() {
   document.getElementById('s-tipos-alimento').textContent= S.tiposAlimento.length;
   document.getElementById('s-tipos-med').textContent     = S.tiposMed.length;
 
-  // Tabla de ciclos
-  document.getElementById('dash-ciclos-tbody').innerHTML = S.ciclos.map(c => `
-    <tr>
-      <td class="mono">${c.id_ciclo}</td>
-      <td>${c.nombre_ciclo || '—'}</td>
-      <td class="mono">${c.fecha_inicio}</td>
-      <td class="mono">${c.fecha_fin || '—'}</td>
-      <td>${c.fecha_fin && c.fecha_fin <= today()
-      ? '<span class="badge badge-gray">Cerrado</span>'
-      : '<span class="badge badge-green">● Activo</span>'}</td>
-    </tr>`).join('');
+  // Tabla de ciclos (dashboard)
+  const vinculosDash = S.vinculos || await tryGet('/galpon-ciclo-produccion', 'vinculos');
+  document.getElementById('dash-ciclos-tbody').innerHTML = S.ciclos.map(c => {
+    const vins = vinculosDash.filter(v => v.id_ciclo?.id === c.id || v.id_ciclo?.id_ciclo === c.id);
+    const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
+    const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
+    const fechaInicio = fechasIni[0] || null;
+    const fechaFin    = fechasFin[fechasFin.length - 1] || null;
+    const activo = !fechaFin || fechaFin > today();
+    return `<tr>
+    <td class="mono">${c.id}</td>
+    <td>${c.nombreCiclo || '—'}</td>
+    <td class="mono">${fechaInicio || '—'}</td>
+    <td class="mono">${fechaFin || '—'}</td>
+    <td>${activo
+        ? '<span class="badge badge-green">● Activo</span>'
+        : '<span class="badge badge-gray">Cerrado</span>'}</td>
+  </tr>`;
+  }).join('');
 
   // Gráfica mortalidad últimos 7 días
   const days = [...Array(7)].map((_, i) => {
@@ -697,23 +721,51 @@ async function deleteGalpon() {
 
 // ─── CICLOS DE PRODUCCIÓN ─────────────────────────────────
 async function loadCiclos() {
-  S.ciclos = await tryGet('/ciclo-produccion', 'ciclos');
+  // Traer ambas entidades en paralelo
+  [S.ciclos, S.vinculos] = await Promise.all([
+    tryGet('/ciclo-produccion',        'ciclos'),
+    tryGet('/galpon-ciclo-produccion', 'vinculos')
+  ]);
+
   document.getElementById('ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    const ini  = c.fecha_inicio ? new Date(c.fecha_inicio) : null;
-    const fin  = c.fecha_fin ? new Date(c.fecha_fin) : new Date();
-    const dias = ini ? Math.round((fin - ini) / (1000 * 60 * 60 * 24)) : '—';
+    // Buscar todos los vínculos de este ciclo
+    const vins = S.vinculos.filter(v => v.id_ciclo?.id === c.id || v.id_ciclo?.id_ciclo === c.id);
+
+    // Galpones asociados (nombres)
+    const galponesNombres = vins.length > 0
+        ? [...new Set(vins.map(v => v.id_galpon?.nombre || `G${v.id_galpon?.id_galpon}`))].join(', ')
+        : '—';
+
+    // Fechas: tomar la menor fecha_inicio y la mayor fecha_fin del conjunto de vínculos
+    const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
+    const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
+    const fechaInicio = fechasIni[0] || null;
+    const fechaFin    = fechasFin[fechasFin.length - 1] || null;
+
+    // Duración en días
+    let dias = '—';
+    if (fechaInicio) {
+      const ini = new Date(fechaInicio);
+      const fin = fechaFin ? new Date(fechaFin) : new Date();
+      dias = Math.round((fin - ini) / (1000 * 60 * 60 * 24));
+    }
+
+    const activo = !fechaFin || fechaFin > today();
+    const estadoBadge = activo
+        ? '<span class="badge badge-green">● Activo</span>'
+        : '<span class="badge badge-gray">Cerrado</span>';
+
     return `<tr>
       <td class="mono">${c.id}</td>
       <td>${c.nombreCiclo || '—'}</td>
-      <td class="mono">${c.fecha_inicio || '—'}</td>
-      <td class="mono">${c.fecha_fin || 'En curso'}</td>
-      <td class="mono">${dias} días</td>
-      <td>${c.fecha_fin && c.fecha_fin <= today()
-        ? '<span class="badge badge-gray">Cerrado</span>'
-        : '<span class="badge badge-green">● Activo</span>'}</td>
+      <td>${galponesNombres}</td>
+      <td class="mono">${fechaInicio || '—'}</td>
+      <td class="mono">${fechaFin || 'En curso'}</td>
+      <td class="mono">${dias !== '—' ? dias + ' días' : '—'}</td>
+      <td>${estadoBadge}</td>
       ${isAdmin() ? `<td><button class="btn-icon" onclick="prepareEditCiclo(${c.id})" title="Editar">✏️</button></td>` : '<td>—</td>'}
     </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
 }
 
 
@@ -1108,67 +1160,79 @@ async function postGalpon() {
   }
 }
 async function postCiclo() {
-  const errBox  = document.getElementById('c-error-msg');
-  const errText = document.getElementById('c-error-text');
-  if (errBox) errBox.style.display = 'none';
+  const nombre = v('c-nombre');
+  const inicio = v('c-inicio');
+  const fin    = v('c-fin') || null;
 
-  const nombre  = v('c-nombre')?.trim();
-  const galponId = v('c-galpon');
-  const inicio  = v('c-inicio');
+  const checks = document.querySelectorAll('#c-galpon-lista input[type=checkbox]:checked');
+  const galponesSeleccionados = Array.from(checks).map(c => +c.value);
 
   if (!nombre) {
-    if (errBox && errText) { errText.textContent = 'El nombre del ciclo es obligatorio.'; errBox.style.display = ''; }
-    return;
-  }
-  if (!galponId) {
-    if (errBox && errText) { errText.textContent = 'Debes seleccionar un galpón.'; errBox.style.display = ''; }
-    return;
+    toast('⚠️', 'Nombre requerido', 'Escribe un nombre para el ciclo', 't-warn'); return;
   }
   if (!inicio) {
-    if (errBox && errText) { errText.textContent = 'La fecha de inicio es obligatoria.'; errBox.style.display = ''; }
-    return;
+    toast('⚠️', 'Fecha inicio requerida', '', 't-warn'); return;
   }
-  const fin = v('c-fin');
   if (fin && fin < inicio) {
-    if (errBox && errText) { errText.textContent = 'La fecha de fin no puede ser anterior a la fecha de inicio.'; errBox.style.display = ''; }
-    return;
+    toast('⚠️', 'Fecha inválida', 'La fecha fin no puede ser anterior a la de inicio', 't-warn'); return;
+  }
+  if (galponesSeleccionados.length === 0) {
+    toast('⚠️', 'Galpón requerido', 'Selecciona al menos un galpón', 't-warn'); return;
   }
 
   try {
-    // Paso 1: crear el ciclo
-    const rCiclo = await fetch(S.apiBase + '/ciclo-produccion', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombreCiclo: nombre, fecha_inicio: inicio, fecha_fin: v('c-fin') || null })
+    // 1. Crear el ciclo
+    const resCiclo = await fetch(S.apiBase + '/ciclo-produccion', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ nombreCiclo: nombre })
     });
-    if (!rCiclo.ok) {
-      const err = await rCiclo.json().catch(() => ({}));
-      if (errBox && errText) { errText.textContent = err.message || 'Error al crear el ciclo.'; errBox.style.display = ''; }
-      return;
-    }
-    const cicloData = await rCiclo.json();
-    const cicloId = cicloData?.data?.id;
 
-    // Paso 2: asociar galpón al ciclo
-    const rAsoc = await fetch(S.apiBase + '/galpon-ciclo-produccion', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fecha_inicio: inicio,
-        fecha_fin: v('c-fin') || null,
-        id_galpon: { id_galpon: +galponId },
-        id_ciclo:  { id: cicloId }
-      })
-    });
-    if (!rAsoc.ok) {
-      if (errBox && errText) { errText.textContent = 'Ciclo creado pero no se pudo asociar el galpón.'; errBox.style.display = ''; }
-      return;
+    if (!resCiclo.ok) {
+      const err = await resCiclo.json().catch(() => ({}));
+      throw new Error(err.message || `Error ${resCiclo.status} al crear el ciclo`);
     }
 
-    toast('✅', 'Ciclo creado', `${nombre} asociado al galpón seleccionado`);
+    const cicloData = await resCiclo.json();
+    // El DTO devuelve el campo como "id" (no id_ciclo)
+    const idCiclo = cicloData.data?.id;
+
+    if (!idCiclo) {
+      throw new Error('El servidor no devolvió el ID del ciclo creado');
+    }
+
+    // 2. Crear un vínculo por cada galpón seleccionado, uno a uno para detectar errores
+    for (const idGalpon of galponesSeleccionados) {
+      const resVinculo = await fetch(S.apiBase + '/galpon-ciclo-produccion', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          fecha_inicio: inicio,
+          fecha_fin:    fin,
+          id_galpon:    { id_galpon: idGalpon },
+          id_ciclo:     { id: idCiclo }
+        })
+      });
+
+      if (!resVinculo.ok) {
+        const err = await resVinculo.json().catch(() => ({}));
+        throw new Error(err.message || `Error ${resVinculo.status} al vincular galpón ${idGalpon}`);
+      }
+    }
+
+    toast('✅', 'Ciclo creado', `${galponesSeleccionados.length} galpón(es) vinculados`);
     closeModal('modal-ciclo');
     loadCiclos();
-  } catch {
-    if (errBox && errText) { errText.textContent = 'No se pudo conectar con el servidor.'; errBox.style.display = ''; }
+
+  } catch (err) {
+    toast('❌', 'Error al guardar', err.message, 't-warn');
   }
+}
+function updateGalponPreview() {
+  const checks = document.querySelectorAll('#c-galpon-lista input[type=checkbox]:checked');
+  const nombres = Array.from(checks).map(c => c.closest('label').querySelector('span').textContent);
+  document.getElementById('c-galpon-preview').textContent =
+      nombres.length > 0 ? '✔ ' + nombres.join(', ') : 'Ningún galpón seleccionado';
 }
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');
