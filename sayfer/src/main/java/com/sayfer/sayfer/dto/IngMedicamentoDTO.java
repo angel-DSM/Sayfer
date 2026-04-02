@@ -9,6 +9,7 @@ public class IngMedicamentoDTO {
     private Double           cantidad;
     private LocalDate        fecha_ingreso;
     private BigDecimal       valor_total;
+    private LocalDate fecha_vencimiento;
     private TipoMedicamentoDTO id_tipo_medicamento;
     private UnidadMedidaDTO    id_unidad;
 }

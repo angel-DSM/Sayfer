@@ -310,7 +310,6 @@ function go(tabId, el, label) {
 function openModal(id) {
   document.getElementById(id).classList.add('open');
   populateSelects(id);
-  // Limpiar errores al abrir
   const errBox = document.querySelector(`#${id} [id$="-error-msg"]`);
   if (errBox) errBox.style.display = 'none';
 }
@@ -358,7 +357,6 @@ function populateSelects(modalId) {
   if (modalId === 'modal-ing-alimento') {
     sel('ia-tipo', ta, 'id_tipo_alimento', x => x.nombre_alimento);
     document.getElementById('ia-fecha').value = today();
-    // Limpiar error previo
     const errBox = document.getElementById('ia-error-msg');
     if (errBox) errBox.style.display = 'none';
     // Cargar stock actual en el modal
@@ -884,6 +882,7 @@ async function loadIngAlimento() {
       <td>${r.id_tipo_alimento?.nombre_alimento || '—'}</td>
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
       <td class="mono">${r.fecha_ingreso}</td>
+      <td class="mono">${r.fecha_vencimiento}</td>
       <td class="mono">${r.valor_total != null ? '$' + r.valor_total.toLocaleString() : '—'}</td>
       <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngAlimento(${r.id_IngAlimento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
@@ -929,6 +928,7 @@ async function loadIngMed() {
       <td>${r.id_tipo_medicamento?.nombre || '—'}</td>
       <td class="mono">${+r.cantidad}</td>
       <td class="mono">${r.fecha_ingreso}</td>
+      <td class="mono">${r.fecha_vencimiento}</td>
       <td class="mono">${r.valor_total != null ? '$' + (+r.valor_total).toLocaleString() : '—'}</td>
       <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngMed(${r.ing_medicamento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
@@ -1342,12 +1342,11 @@ async function loadStockPreviewAlimento() {
 }
 
 async function postIngAlimento() {
-  // Limpiar mensaje de error anterior
   const errBox  = document.getElementById('ia-error-msg');
   const errText = document.getElementById('ia-error-text');
   if (errBox) errBox.style.display = 'none';
 
-  // Validación básica
+  // Validación
   if (!v('ia-tipo')) {
     if (errBox && errText) { errText.textContent = 'Selecciona un tipo de alimento.'; errBox.style.display = ''; }
     return;
@@ -1360,12 +1359,17 @@ async function postIngAlimento() {
     if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
     return;
   }
+  if (!v('ia-fechav')) {
+    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de vencimiento.'; errBox.style.display = ''; }
+    return;
+  }
 
   const vtotal = v('ia-vtotal');
   const payload = {
     id_tipo_alimento: { id_tipo_alimento: +v('ia-tipo') },
     cantidad:    +v('ia-cantidad'),
     fecha_ingreso: v('ia-fecha'),
+    fecha_vencimiento: v('ia-fechav'),
     valor_total: vtotal && +vtotal > 0 ? +vtotal : null
   };
 
@@ -1401,6 +1405,7 @@ async function prepareEditIngAlimento(id) {
     document.getElementById('eia-tipo-display').value = ingreso.id_tipo_alimento?.nombre_alimento || 'Desconocido';
     document.getElementById('eia-cantidad').value = ingreso.cantidad;
     document.getElementById('eia-fecha').value = ingreso.fecha_ingreso;
+    document.getElementById('eia-fechav').value = ingreso.fecha_vencimiento;
     document.getElementById('eia-vtotal').value = ingreso.valor_total || '';
     
     // Limpiar mensajes de error
@@ -1432,6 +1437,10 @@ async function updateIngAlimento() {
     if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
     return;
   }
+  if (!v('eia-fechav')) {
+    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de vencimiento.'; errBox.style.display = ''; }
+    return;
+  }
 
   const vtotal = v('eia-vtotal');
   const tipoId = v('eia-tipo-id');
@@ -1439,6 +1448,7 @@ async function updateIngAlimento() {
     id_tipo_alimento: tipoId ? { id_tipo_alimento: +tipoId } : null,
     cantidad: +v('eia-cantidad'),
     fecha_ingreso: v('eia-fecha'),
+    fecha_vencimiento: v('eia-fechav'),
     valor_total: vtotal && +vtotal > 0 ? +vtotal : null
   };
 
@@ -1516,6 +1526,7 @@ async function postIngMed() {
   const tipoId   = v('im-tipo');
   const cantidad = v('im-cantidad');
   const fecha    = v('im-fecha');
+  const fechav    = v('im-fechav');
 
   if (!tipoId) {
     if (errBox && errText) { errText.textContent = 'Selecciona un tipo de medicamento.'; errBox.style.display = ''; }
@@ -1529,12 +1540,17 @@ async function postIngMed() {
     if (errBox && errText) { errText.textContent = 'La fecha de ingreso es obligatoria.'; errBox.style.display = ''; }
     return;
   }
+  if (!fechav) {
+    if (errBox && errText) { errText.textContent = 'La fecha de vencimiento es obligatoria.'; errBox.style.display = ''; }
+    return;
+  }
 
   const vtotal = v('im-vtotal');
   const payload = {
     id_tipo_medicamento: { id_tipo_medicamento: +tipoId },
     cantidad:    +cantidad,
     fecha_ingreso: fecha,
+    fecha_vencimiento: fechav,
     valor_total: vtotal && +vtotal > 0 ? +vtotal : null
   };
 
@@ -1613,6 +1629,7 @@ async function prepareEditIngMed(id) {
     document.getElementById('eim-tipo-display').value = ingreso.id_tipo_medicamento?.nombre || 'Desconocido';
     document.getElementById('eim-cantidad').value = ingreso.cantidad;
     document.getElementById('eim-fecha').value = ingreso.fecha_ingreso;
+    document.getElementById('eim-fechav').value = ingreso.fecha_vencimiento;
     document.getElementById('eim-vtotal').value = ingreso.valor_total || '';
     const errBox = document.getElementById('eim-error-msg');
     if (errBox) errBox.style.display = 'none';
@@ -1636,6 +1653,10 @@ async function updateIngMed() {
     if (errBox && errText) { errText.textContent = 'Ingresa la fecha de ingreso.'; errBox.style.display = ''; }
     return;
   }
+  if (!v('eim-fechav')) {
+    if (errBox && errText) { errText.textContent = 'Ingresa la fecha de vencimiento.'; errBox.style.display = ''; }
+    return;
+  }
 
   const tipoId = v('eim-tipo-id');
   const unidadId = v('eim-unidad-id');
@@ -1644,6 +1665,7 @@ async function updateIngMed() {
     id_tipo_medicamento: tipoId ? { id_tipo_medicamento: +tipoId } : null,
     cantidad: +v('eim-cantidad'),
     fecha_ingreso: v('eim-fecha'),
+    fecha_vencimiento: v('eim-fechav'),
     valor_total: vtotal && +vtotal > 0 ? +vtotal : null
   };
 

@@ -32,6 +32,7 @@ public class IngMedicamentoMapper extends GenericMapper<IngMedicamento, IngMedic
                 .cantidad(entidad.getCantidad())
                 .fecha_ingreso(entidad.getFecha_ingreso())
                 .valor_total(entidad.getValor_total())
+                .fecha_vencimiento(entidad.getFecha_vencimiento())
                 .id_tipo_medicamento(tipoDTO)
                 .id_unidad(unidadDTO)
                 .build();
@@ -58,6 +59,7 @@ public class IngMedicamentoMapper extends GenericMapper<IngMedicamento, IngMedic
                 .cantidad(dto.getCantidad())
                 .fecha_ingreso(dto.getFecha_ingreso())
                 .valor_total(dto.getValor_total())
+                .fecha_vencimiento(dto.getFecha_vencimiento())
                 .id_tipo_medicamento(tipo)
                 .id_unidad(unidad)
                 .build();

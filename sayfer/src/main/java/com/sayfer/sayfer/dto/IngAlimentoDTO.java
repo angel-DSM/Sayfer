@@ -16,6 +16,7 @@ public class IngAlimentoDTO {
     private LocalDate fecha_ingreso;
     private BigDecimal valor_unitario;
     private BigDecimal valor_total;
+    private LocalDate fecha_vencimiento;
     private UnidadMedidaDTO id_unidad;
     private TipoAlimentoDTO id_tipo_alimento;
 }

@@ -31,6 +31,9 @@ public class IngMedicamento {
     @Column(name = "valor_total", precision = 30, scale = 2, nullable = true)
     private  BigDecimal valor_total;
 
+    @Column(name = "fecha_vencimiento", precision = 10, scale = 2)
+    private LocalDate fecha_vencimiento;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_medicamento", nullable = false)
     private TipoMedicamento id_tipo_medicamento;
