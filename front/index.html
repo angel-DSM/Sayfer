@@ -296,7 +296,7 @@
     <div class="grid-2">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Mortalidad — últimos 7 días</span>
+          <span class="card-title">Mortalidad — ciclos</span>
           <span class="chip" id="chip-total-muertos">Total: —</span>
         </div>
         <div class="card-body">
@@ -429,7 +429,12 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Historial de Ingresos</span></div>
+      <div class="card-header"><span class="card-title">Historial de Ingresos</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'ing-med-tbody')">
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>ID</th><th>Medicamento</th><th>Cantidad total</th><th>Fecha Ingreso</th><th>Fecha de vencimiento</th><th>Valor Total</th><th>Acciones</th></tr></thead>
@@ -562,7 +567,12 @@
       <button class="btn btn-primary" onclick="openModal('modal-adm-alimento')">+ Registrar Administración</button>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Registros de Alimentación</span></div>
+      <div class="card-header"><span class="card-title">Registros de Alimentación</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'adm-alimento-tbody')">
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>ID</th><th>Tipo Alimento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad (kg)</th><th>Fecha</th><th>Usuario</th></tr></thead>
@@ -581,10 +591,15 @@
       <button class="btn btn-primary" onclick="openModal('modal-adm-med')">+ Registrar Aplicación</button>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Registros de Medicación</span></div>
+      <div class="card-header"><span class="card-title">Registros de Medicación</span>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'adm-alimento-tbody')">
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Medicamento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad</th><th>Unidad</th><th>Fecha</th><th>Usuario</th></tr></thead>
+          <thead><tr><th>ID</th><th>Medicamento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad</th><th>Fecha</th><th>Usuario</th></tr></thead>
           <tbody id="adm-med-tbody">
           <tr><td colspan="8" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -867,20 +882,51 @@
 <!-- Editar Ciclo -->
 <div class="modal-overlay" id="modal-editar-ciclo">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Editar Ciclo de Producción</div><button class="modal-close" onclick="closeModal('modal-editar-ciclo')">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">Editar Ciclo de Producción</div>
+      <button class="modal-close" onclick="closeModal('modal-editar-ciclo')">✕</button>
+    </div>
     <div class="form-grid">
-      <div class="fgroup full"><label>Nombre del Ciclo</label><input id="ec-nombre" type="text"></div>
-      <div class="fgroup"><label>Fecha Inicio</label><input id="ec-inicio" type="date" disabled style="background:var(--bg2)"></div>
-      <div class="fgroup"><label>Fecha Fin</label><input id="ec-fin" type="date"></div>
       <input type="hidden" id="ec-id">
+
+      <div class="fgroup full">
+        <label>Nombre del Ciclo</label>
+        <input id="ec-nombre" type="text">
+      </div>
+
+      <div class="fgroup">
+        <label>Fecha Inicio</label>
+        <input id="ec-inicio" type="date">
+      </div>
+      <div class="fgroup">
+        <label>Fecha Fin (opcional)</label>
+        <input id="ec-fin" type="date">
+      </div>
+
+      <!-- Lista de galpones con checkboxes -->
+      <div class="fgroup full">
+        <label>Galpones vinculados</label>
+        <div id="ec-galpon-lista" style="
+          max-height:160px;overflow-y:auto;
+          border:1px solid var(--border);border-radius:8px;
+          background:var(--bg2);padding:8px 12px;
+          display:flex;flex-direction:column;gap:8px;">
+        </div>
+        <div id="ec-galpon-preview" style="margin-top:6px;font-size:12px;color:var(--text3)">
+          Ningún galpón seleccionado
+        </div>
+      </div>
+
       <div id="ec-error-msg" class="fgroup full" style="display:none">
-        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="ec-error-text"></div>
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px"
+             id="ec-error-text"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-editar-ciclo')">Cancelar</button>
       <button class="btn btn-primary" onclick="updateCiclo()">Guardar Cambios</button>
-      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteCiclo()">🗑️ Eliminar</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer"
+              onclick="deleteCiclo()">🗑️ Eliminar</button>
     </div>
   </div>
 </div>
@@ -1002,6 +1048,7 @@
       <div class="fgroup full"><label>Tipo de Alimento</label><input id="eia-tipo-display" type="text" placeholder="" disabled style="background:var(--bg2);"></div>
       <div class="fgroup"><label>Cantidad (kg)</label><input id="eia-cantidad" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="eia-fecha" type="date"></div>
+      <div class="fgroup"><label>Fecha vencimiento</label><input id="eia-fechav" type="date"></div>
       <div class="fgroup"><label>Valor Total (COP)</label><input id="eia-vtotal" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <input type="hidden" id="eia-id">
       <input type="hidden" id="eia-tipo-id">
@@ -1039,6 +1086,7 @@
       <div class="fgroup full"><label>Tipo Medicamento</label><input id="eim-tipo-display" type="text" disabled style="background:var(--bg2);"></div>
       <div class="fgroup"><label>Cantidad</label><input id="eim-cantidad" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <div class="fgroup"><label>Fecha Ingreso</label><input id="eim-fecha" type="date"></div>
+      <div class="fgroup"><label>Fecha Vencimiento</label><input id="eim-fechav" type="date"></div>
       <div class="fgroup"><label>Valor Total (COP)</label><input id="eim-vtotal" type="number" step="0.01" placeholder="0.00" onkeydown="onlyNumbers(event)"></div>
       <input type="hidden" id="eim-id">
       <input type="hidden" id="eim-tipo-id">
@@ -1154,7 +1202,6 @@
       <div class="fgroup"><label>Galpón</label><select id="am-galpon"></select></div>
       <div class="fgroup"><label>Ciclo</label><select id="am-ciclo"></select></div>
       <div class="fgroup"><label>Usuario</label><select id="am-usuario"></select></div>
-      <div class="fgroup"><label>Unidad</label><select id="am-unidad"></select></div>
       <div class="fgroup"><label>Cantidad Utilizada</label><input id="am-cantidad" type="number" step="0.01"></div>
       <div class="fgroup full"><label>Fecha Medicación</label><input id="am-fecha" type="date"></div>
     </div>

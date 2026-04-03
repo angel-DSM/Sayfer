@@ -369,22 +369,28 @@ function populateSelects(modalId) {
   if (modalId === 'modal-adm-alimento') {
     sel('aa-tipo',    ta, 'id_tipo_alimento', x => x.nombre_alimento);
     sel('aa-galpon',  g,  'id_galpon',        x => `${x.id_galpon} — ${x.nombre}`);
-    sel('aa-ciclo',   c,  'id_ciclo',         x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
+    sel('aa-ciclo',   c,  'id',         x => x.nombreCiclo||`Ciclo ${x.id}`);
     sel('aa-usuario', u,  'cedula',            x => `${x.nombre} ${x.apellido}`);
     document.getElementById('aa-fecha').value = today();
   }
   if (modalId === 'modal-adm-med') {
     sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
     sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
-    sel('am-ciclo',   c,  'id_ciclo',            x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
+    sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
     sel('am-usuario', u,  'cedula',               x => `${x.nombre} ${x.apellido}`);
-    sel('am-unidad',  un, 'id_unidad',           x => x.nombre_unidad);
     document.getElementById('am-fecha').value = today();
   }
   if (modalId === 'modal-galpon') {
     ['g-nombre','g-metros','g-capacidad'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     ['g-sugerencia','g-alerta','g-error-msg'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
     document.getElementById('g-capacidad').placeholder = '—';
+  }
+  if (modalId === 'modal-adm-med') {
+    sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
+    sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
+    sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
+    sel('am-usuario', u,  'cedula',               x => `${x.nombre} ${x.apellido}`);
+    document.getElementById('am-fecha').value = today();
   }
   if (modalId === 'modal-ciclo') {
     const galpones = S.galpones || [];
@@ -766,18 +772,53 @@ async function loadCiclos() {
   }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
 }
 
-
 // ─── EDITAR / ELIMINAR CICLO ──────────────────────────────
-function prepareEditCiclo(id) {
+async function prepareEditCiclo(id) {
   const ciclo = S.ciclos.find(c => c.id === id);
   if (!ciclo) { toast('❌', 'Ciclo no encontrado', '', 't-warn'); return; }
+
   document.getElementById('ec-id').value     = ciclo.id;
   document.getElementById('ec-nombre').value = ciclo.nombreCiclo || '';
-  document.getElementById('ec-inicio').value = ciclo.fecha_inicio || '';
-  document.getElementById('ec-fin').value    = ciclo.fecha_fin || '';
+
+  // Buscar los vínculos de este ciclo para obtener fechas y galpones actuales
+  const vins = (S.vinculos || []).filter(v =>
+      v.id_ciclo?.id === ciclo.id || v.id_ciclo?.id_ciclo === ciclo.id
+  );
+
+  // Fechas: tomar la menor inicio y mayor fin del conjunto
+  const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
+  const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
+  document.getElementById('ec-inicio').value = fechasIni[0] || '';
+  document.getElementById('ec-fin').value    = fechasFin[fechasFin.length - 1] || '';
+
+  // IDs de galpones ya vinculados
+  const galponesActuales = vins.map(v => v.id_galpon?.id_galpon).filter(Boolean);
+
+  // Renderizar checkboxes marcando los ya vinculados
+  const lista = document.getElementById('ec-galpon-lista');
+  lista.innerHTML = S.galpones.map(g => `
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+      <input type="checkbox" value="${g.id_galpon}"
+        ${galponesActuales.includes(g.id_galpon) ? 'checked' : ''}
+        style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:pointer"
+        onchange="updateEcGalponPreview()">
+      <span>${g.nombre}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)">${g.capacidad?.toLocaleString() || ''} aves</span>
+    </label>`
+  ).join('');
+
+  updateEcGalponPreview();
+
   const errBox = document.getElementById('ec-error-msg');
   if (errBox) errBox.style.display = 'none';
   openModal('modal-editar-ciclo');
+}
+
+function updateEcGalponPreview() {
+  const checks = document.querySelectorAll('#ec-galpon-lista input[type=checkbox]:checked');
+  const nombres = Array.from(checks).map(c => c.closest('label').querySelector('span').textContent);
+  document.getElementById('ec-galpon-preview').textContent =
+      nombres.length > 0 ? '✔ ' + nombres.join(', ') : 'Ningún galpón seleccionado';
 }
 
 async function updateCiclo() {
@@ -788,47 +829,108 @@ async function updateCiclo() {
   const id     = v('ec-id');
   const nombre = v('ec-nombre')?.trim();
   const inicio = v('ec-inicio');
-  const fin    = v('ec-fin');
+  const fin    = v('ec-fin') || null;
+
+  const checks = document.querySelectorAll('#ec-galpon-lista input[type=checkbox]:checked');
+  const galponesSeleccionados = Array.from(checks).map(c => +c.value);
 
   if (!nombre) {
     if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
     return;
   }
-  if (fin && inicio && fin < inicio) {
-    if (errBox && errText) { errText.textContent = 'La fecha de fin no puede ser anterior a la de inicio.'; errBox.style.display = ''; }
+  if (!inicio) {
+    if (errBox && errText) { errText.textContent = 'La fecha de inicio es obligatoria.'; errBox.style.display = ''; }
+    return;
+  }
+  if (fin && fin < inicio) {
+    if (errBox && errText) { errText.textContent = 'La fecha fin no puede ser anterior a la de inicio.'; errBox.style.display = ''; }
+    return;
+  }
+  if (galponesSeleccionados.length === 0) {
+    if (errBox && errText) { errText.textContent = 'Selecciona al menos un galpón.'; errBox.style.display = ''; }
     return;
   }
 
   try {
-    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombreCiclo: nombre, fecha_inicio: inicio || null, fecha_fin: fin || null })
+    // 1. Actualizar nombre del ciclo
+    const rCiclo = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify({ nombreCiclo: nombre })
     });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      if (errBox && errText) { errText.textContent = err.message || 'Error al actualizar.'; errBox.style.display = ''; }
-      return;
+    if (!rCiclo.ok) {
+      const err = await rCiclo.json().catch(() => ({}));
+      throw new Error(err.message || 'Error al actualizar el ciclo');
     }
+
+    // 2. Borrar todos los vínculos actuales de este ciclo
+    const vinculosActuales = (S.vinculos || []).filter(v =>
+        v.id_ciclo?.id === +id || v.id_ciclo?.id_ciclo === +id
+    );
+    for (const vin of vinculosActuales) {
+      await fetch(S.apiBase + '/galpon-ciclo-produccion/' + vin.id_galpon_ciclo_produccion, {
+        method: 'DELETE',
+        headers: headers()
+      });
+    }
+
+    // 3. Crear los nuevos vínculos con los galpones seleccionados
+    for (const idGalpon of galponesSeleccionados) {
+      const rVin = await fetch(S.apiBase + '/galpon-ciclo-produccion', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          fecha_inicio: inicio,
+          fecha_fin:    fin,
+          id_galpon:    { id_galpon: idGalpon },
+          id_ciclo:     { id: +id }
+        })
+      });
+      if (!rVin.ok) {
+        const err = await rVin.json().catch(() => ({}));
+        throw new Error(err.message || `Error al vincular galpón ${idGalpon}`);
+      }
+    }
+
     toast('✅', 'Ciclo actualizado');
     closeModal('modal-editar-ciclo');
     loadCiclos();
-  } catch {
-    if (errBox && errText) { errText.textContent = 'No se pudo conectar.'; errBox.style.display = ''; }
+
+  } catch (err) {
+    if (errBox && errText) { errText.textContent = err.message; errBox.style.display = ''; }
   }
 }
 
 async function deleteCiclo() {
   const id     = v('ec-id');
   const nombre = v('ec-nombre');
-  if (!confirm(`⚠️ ¿Eliminar el ciclo "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  if (!confirm(`⚠️ ¿Eliminar el ciclo "${nombre}"?\n\nSe eliminarán también todos los galpones vinculados.\nEsta acción no se puede deshacer.`)) return;
+
   try {
-    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, { method: 'DELETE' });
-    if (!r.ok) { toast('❌', 'No se pudo eliminar', 'El ciclo puede tener registros asociados.', 't-error'); return; }
+    // 1. Borrar primero todos los vínculos galpon-ciclo
+    const vinculosActuales = (S.vinculos || []).filter(v =>
+        v.id_ciclo?.id === +id || v.id_ciclo?.id_ciclo === +id
+    );
+    for (const vin of vinculosActuales) {
+      await fetch(S.apiBase + '/galpon-ciclo-produccion/' + vin.id_galpon_ciclo_produccion, {
+        method: 'DELETE',
+        headers: headers()
+      });
+    }
+
+    // 2. Borrar el ciclo
+    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
+      method: 'DELETE',
+      headers: headers()
+    });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar el ciclo', '', 't-warn'); return; }
+
     toast('✅', 'Ciclo eliminado');
     closeModal('modal-editar-ciclo');
     loadCiclos();
+
   } catch {
-    toast('❌', 'Error al eliminar', '', 't-error');
+    toast('❌', 'Error al eliminar', '', 't-warn');
   }
 }
 
@@ -1007,7 +1109,6 @@ async function loadAdmMed() {
       <td>${r.nombre_galpon    || r.id_galpon}</td>
       <td>${r.nombre_ciclo     || r.id_ciclo}</td>
       <td class="mono">${+r.cantidad_utilizada}</td>
-      <td class="mono">${r.nombre_unidad || r.id_unidad}</td>
       <td class="mono">${r.fecha_medicacion}</td>
       <td>${r.nombre_usuario   || r.id_usuario}</td>
     </tr>`).join('') ||
@@ -1726,8 +1827,7 @@ function postAdmAlimento() {
 function postAdmMed() {
   doPost('/admi-medicamento',
       { id_tipo_medicamento: +v('am-tipo'), id_galpon: +v('am-galpon'),
-        id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'),
-        id_unidad: +v('am-unidad'), cantidad_utilizada: +v('am-cantidad'),
+        id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'), cantidad_utilizada: +v('am-cantidad'),
         fecha_medicacion: v('am-fecha') },
       'modal-adm-med', loadAdmMed, 'Medicación');
 }
