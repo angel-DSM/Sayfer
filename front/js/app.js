@@ -367,18 +367,11 @@ function populateSelects(modalId) {
     document.getElementById('im-fecha').value = today();
   }
   if (modalId === 'modal-adm-alimento') {
-    sel('aa-tipo',    ta, 'id_tipo_alimento', x => x.nombre_alimento);
-    sel('aa-galpon',  g,  'id_galpon',        x => `${x.id_galpon} — ${x.nombre}`);
-    sel('aa-ciclo',   c,  'id',         x => x.nombreCiclo||`Ciclo ${x.id}`);
-    sel('aa-usuario', u,  'cedula',            x => `${x.nombre} ${x.apellido}`);
+    sel('aa-tipo',   ta, 'id_tipo_alimento', x => x.nombre_alimento);
+    sel('aa-galpon', g,  'id_galpon',        x => x.nombre);
+    sel('aa-ciclo',  c,  'id',               x => x.nombreCiclo || `Ciclo ${x.id}`);
     document.getElementById('aa-fecha').value = today();
-  }
-  if (modalId === 'modal-adm-med') {
-    sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
-    sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
-    sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
-    sel('am-usuario', u,  'cedula',               x => `${x.nombre} ${x.apellido}`);
-    document.getElementById('am-fecha').value = today();
+    document.getElementById('aa-cantidad').value = '';
   }
   if (modalId === 'modal-galpon') {
     ['g-nombre','g-metros','g-capacidad'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
@@ -389,7 +382,6 @@ function populateSelects(modalId) {
     sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
     sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
     sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
-    sel('am-usuario', u,  'cedula',               x => `${x.nombre} ${x.apellido}`);
     document.getElementById('am-fecha').value = today();
   }
   if (modalId === 'modal-ciclo') {
@@ -1085,18 +1077,18 @@ async function loadMortalidad() {
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
   const data = await tryGet('/admi-alimento', 'admAlimento');
-
   document.getElementById('adm-alimento-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_admi_alimento}</td>
-      <td>${r.nombre_alimento  || r.id_tipo_alimento}</td>
-      <td>${r.nombre_galpon    || r.id_galpon}</td>
-      <td>${r.nombre_ciclo     || r.id_ciclo}</td>
+      <td>${r.nombre_alimento  || '—'}</td>
+      <td>${r.nombre_galpon    || '—'}</td>
+      <td>${r.nombre_ciclo     || '—'}</td>
       <td class="mono">${(+r.cantidad_utilizada).toLocaleString()} kg</td>
       <td class="mono">${r.fecha_alimentacion}</td>
-      <td>${r.nombre_usuario   || r.id_usuario}</td>
+      <td>${r.nombre_usuario   || '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditAdmAlimento(${r.id_admi_alimento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
-      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── ADMINISTRACIÓN DE MEDICAMENTOS ──────────────────────
@@ -1105,12 +1097,13 @@ async function loadAdmMed() {
   document.getElementById('adm-med-tbody').innerHTML = data.map(r => `
     <tr>
       <td class="mono">${r.id_admi_medicamento}</td>
-      <td>${r.nombre_med       || r.id_tipo_medicamento}</td>
-      <td>${r.nombre_galpon    || r.id_galpon}</td>
-      <td>${r.nombre_ciclo     || r.id_ciclo}</td>
+      <td>${r.nombre_med    || '—'}</td>
+      <td>${r.nombre_galpon || '—'}</td>
+      <td>${r.nombre_ciclo  || '—'}</td>
       <td class="mono">${+r.cantidad_utilizada}</td>
       <td class="mono">${r.fecha_medicacion}</td>
-      <td>${r.nombre_usuario   || r.id_usuario}</td>
+      <td>${r.nombre_usuario || '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditAdmMed(${r.id_admi_medicamento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
       '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
@@ -1817,19 +1810,209 @@ function postMortalidad() {
         cantidad_muertos: +v('mo-cantidad'), causa: v('mo-causa') },
       'modal-mortalidad', loadMortalidad, 'Mortalidad');
 }
-function postAdmAlimento() {
-  doPost('/admi-alimento',
-      { id_tipo_alimento: +v('aa-tipo'), id_galpon: +v('aa-galpon'),
-        id_ciclo: +v('aa-ciclo'), id_usuario: +v('aa-usuario'),
-        cantidad_utilizada: +v('aa-cantidad'), fecha_alimentacion: v('aa-fecha') },
-      'modal-adm-alimento', loadAdmAlimento, 'Alimentación');
+async function postAdmAlimento() {
+  const cantidad = +v('aa-cantidad');
+  if (!v('aa-tipo'))  { toast('⚠️', 'Selecciona un tipo de alimento', '', 't-warn'); return; }
+  if (!v('aa-galpon')){ toast('⚠️', 'Selecciona un galpón', '', 't-warn'); return; }
+  if (!v('aa-ciclo')) { toast('⚠️', 'Selecciona un ciclo', '', 't-warn'); return; }
+  if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
+  if (!v('aa-fecha')) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+
+  const payload = {
+    id_tipo_alimento: +v('aa-tipo'),
+    id_galpon:        +v('aa-galpon'),
+    id_ciclo:         +v('aa-ciclo'),
+    id_usuario:       S.user?.cedula,
+    cantidad_utilizada: cantidad,
+    fecha_alimentacion: v('aa-fecha')
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-alimento', {
+      method: 'POST', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('❌', 'Error al registrar', err.message || `Error ${r.status}`, 't-warn');
+      return;
+    }
+    toast('✅', 'Alimentación registrada', 'Stock actualizado');
+    closeModal('modal-adm-alimento');
+    loadAdmAlimento();
+    loadStockAlimento();
+  } catch (err) {
+    toast('❌', 'Error de conexión', err.message, 't-warn');
+  }
 }
-function postAdmMed() {
-  doPost('/admi-medicamento',
-      { id_tipo_medicamento: +v('am-tipo'), id_galpon: +v('am-galpon'),
-        id_ciclo: +v('am-ciclo'), id_usuario: +v('am-usuario'), cantidad_utilizada: +v('am-cantidad'),
-        fecha_medicacion: v('am-fecha') },
-      'modal-adm-med', loadAdmMed, 'Medicación');
+async function prepareEditAdmAlimento(id) {
+  const data = await tryGet('/admi-alimento', 'admAlimento');
+  const r = data.find(x => x.id_admi_alimento === id);
+  if (!r) { toast('❌', 'Registro no encontrado', '', 't-warn'); return; }
+
+  document.getElementById('eaa-id').value           = r.id_admi_alimento;
+  document.getElementById('eaa-tipo-id').value      = r.id_tipo_alimento;
+  document.getElementById('eaa-galpon-id').value    = r.id_galpon;
+  document.getElementById('eaa-ciclo-id').value     = r.id_ciclo;
+  document.getElementById('eaa-tipo-display').value = r.nombre_alimento || '';
+  document.getElementById('eaa-cantidad').value     = r.cantidad_utilizada;
+  document.getElementById('eaa-fecha').value        = r.fecha_alimentacion;
+  openModal('modal-editar-adm-alimento');
+}
+
+async function updateAdmAlimento() {
+  const id      = +v('eaa-id');
+  const cantidad = +v('eaa-cantidad');
+  const fecha   = v('eaa-fecha');
+
+  if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
+  if (!fecha) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+
+  const payload = {
+    id_tipo_alimento:   +v('eaa-tipo-id'),
+    id_galpon:          +v('eaa-galpon-id'),
+    id_ciclo:           +v('eaa-ciclo-id'),
+    id_usuario:         S.user?.cedula,
+    cantidad_utilizada: cantidad,
+    fecha_alimentacion: fecha
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-alimento/' + id, {
+      method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('❌', 'Error al actualizar', err.message || `Error ${r.status}`, 't-warn');
+      return;
+    }
+    toast('✅', 'Registro actualizado', 'Stock ajustado');
+    closeModal('modal-editar-adm-alimento');
+    loadAdmAlimento();
+    loadStockAlimento();
+  } catch (err) {
+    toast('❌', 'Error de conexión', err.message, 't-warn');
+  }
+}
+
+async function deleteAdmAlimento() {
+  const id     = +v('eaa-id');
+  const nombre = document.getElementById('eaa-tipo-display').value;
+  if (!confirm(`⚠️ ¿Eliminar este registro de "${nombre}"?\n\nLa cantidad se devolverá al stock.\nEsta acción no se puede deshacer.`)) return;
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-alimento/' + id, {
+      method: 'DELETE', headers: headers()
+    });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', '', 't-warn'); return; }
+    toast('✅', 'Registro eliminado', 'Stock restaurado');
+    closeModal('modal-editar-adm-alimento');
+    loadAdmAlimento();
+    loadStockAlimento();
+  } catch {
+    toast('❌', 'Error al eliminar', '', 't-warn');
+  }
+}
+async function postAdmMed() {
+  const cantidad = +v('am-cantidad');
+  if (!v('am-tipo'))  { toast('⚠️', 'Selecciona un medicamento', '', 't-warn'); return; }
+  if (!v('am-galpon')){ toast('⚠️', 'Selecciona un galpón', '', 't-warn'); return; }
+  if (!v('am-ciclo')) { toast('⚠️', 'Selecciona un ciclo', '', 't-warn'); return; }
+  if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
+  if (!v('am-fecha')) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+
+  const payload = {
+    id_tipo_medicamento: +v('am-tipo'),
+    id_galpon:           +v('am-galpon'),
+    id_ciclo:            +v('am-ciclo'),
+    id_usuario:          S.user?.cedula,
+    cantidad_utilizada:  cantidad,
+    fecha_medicacion:    v('am-fecha')
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-medicamento', {
+      method: 'POST', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('❌', 'Error al registrar', err.message || `Error ${r.status}`, 't-warn');
+      return;
+    }
+    toast('✅', 'Medicación registrada', 'Stock actualizado');
+    closeModal('modal-adm-med');
+    loadAdmMed();
+    loadStockMed();
+  } catch (err) {
+    toast('❌', 'Error de conexión', err.message, 't-warn');
+  }
+}
+async function prepareEditAdmMed(id) {
+  const data = await tryGet('/admi-medicamento', 'admMed');
+  const r = data.find(x => x.id_admi_medicamento === id);
+  if (!r) { toast('❌', 'Registro no encontrado', '', 't-warn'); return; }
+
+  document.getElementById('eam-id').value           = r.id_admi_medicamento;
+  document.getElementById('eam-tipo-id').value      = r.id_tipo_medicamento;
+  document.getElementById('eam-galpon-id').value    = r.id_galpon;
+  document.getElementById('eam-ciclo-id').value     = r.id_ciclo;
+  document.getElementById('eam-tipo-display').value = r.nombre_med || '';
+  document.getElementById('eam-cantidad').value     = r.cantidad_utilizada;
+  document.getElementById('eam-fecha').value        = r.fecha_medicacion;
+  openModal('modal-editar-adm-med');
+}
+
+async function updateAdmMed() {
+  const id      = +v('eam-id');
+  const cantidad = +v('eam-cantidad');
+  const fecha   = v('eam-fecha');
+
+  if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
+  if (!fecha) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+
+  const payload = {
+    id_tipo_medicamento: +v('eam-tipo-id'),
+    id_galpon:           +v('eam-galpon-id'),
+    id_ciclo:            +v('eam-ciclo-id'),
+    id_usuario:          S.user?.cedula,
+    cantidad_utilizada:  cantidad,
+    fecha_medicacion:    fecha
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-medicamento/' + id, {
+      method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('❌', 'Error al actualizar', err.message || `Error ${r.status}`, 't-warn');
+      return;
+    }
+    toast('✅', 'Registro actualizado', 'Stock ajustado');
+    closeModal('modal-editar-adm-med');
+    loadAdmMed();
+    loadStockMed();
+  } catch (err) {
+    toast('❌', 'Error de conexión', err.message, 't-warn');
+  }
+}
+
+async function deleteAdmMed() {
+  const id     = +v('eam-id');
+  const nombre = document.getElementById('eam-tipo-display').value;
+  if (!confirm(`⚠️ ¿Eliminar este registro de "${nombre}"?\n\nLa cantidad se devolverá al stock.\nEsta acción no se puede deshacer.`)) return;
+
+  try {
+    const r = await fetch(S.apiBase + '/admi-medicamento/' + id, {
+      method: 'DELETE', headers: headers()
+    });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', '', 't-warn'); return; }
+    toast('✅', 'Registro eliminado', 'Stock restaurado');
+    closeModal('modal-editar-adm-med');
+    loadAdmMed();
+    loadStockMed();
+  } catch {
+    toast('❌', 'Error al eliminar', '', 't-warn');
+  }
 }
 function NewUsuario() {
   _editandoUsuario = null;

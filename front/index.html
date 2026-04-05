@@ -575,7 +575,7 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Tipo Alimento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad (kg)</th><th>Fecha</th><th>Usuario</th></tr></thead>
+          <thead><tr><th>ID</th><th>Tipo Alimento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad (kg)</th><th>Fecha</th><th>Usuario</th><th>Acciones</th></tr></thead>
           <tbody id="adm-alimento-tbody">
           <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -594,12 +594,12 @@
       <div class="card-header"><span class="card-title">Registros de Medicación</span>
         <div class="search-wrap">
           <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'adm-alimento-tbody')">
+          <input type="text" placeholder="Buscar..." oninput="filterTbl(this,'adm-med-tbody')">
         </div>
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Medicamento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad</th><th>Fecha</th><th>Usuario</th></tr></thead>
+          <thead><tr><th>ID</th><th>Medicamento</th><th>Galpón</th><th>Ciclo</th><th>Cantidad</th><th>Fecha</th><th>Usuario</th><th>Acciones</th></tr></thead>
           <tbody id="adm-med-tbody">
           <tr><td colspan="8" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -1177,13 +1177,15 @@
 <!-- Administración Alimento -->
 <div class="modal-overlay" id="modal-adm-alimento">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Registrar Alimentación</div><button class="modal-close" onclick="closeModal('modal-adm-alimento')">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">Registrar Alimentación</div>
+      <button class="modal-close" onclick="closeModal('modal-adm-alimento')">✕</button>
+    </div>
     <div class="form-grid">
       <div class="fgroup"><label>Tipo Alimento</label><select id="aa-tipo"></select></div>
       <div class="fgroup"><label>Galpón</label><select id="aa-galpon"></select></div>
       <div class="fgroup"><label>Ciclo</label><select id="aa-ciclo"></select></div>
-      <div class="fgroup"><label>Usuario</label><select id="aa-usuario"></select></div>
-      <div class="fgroup"><label>Cantidad Utilizada (kg)</label><input id="aa-cantidad" type="number" step="0.01"></div>
+      <div class="fgroup"><label>Cantidad Utilizada (kg)</label><input id="aa-cantidad" type="number" step="1" min="1"></div>
       <div class="fgroup"><label>Fecha Alimentación</label><input id="aa-fecha" type="date"></div>
     </div>
     <div class="modal-footer">
@@ -1193,21 +1195,76 @@
   </div>
 </div>
 
+<!-- Editar Administración Alimento -->
+<div class="modal-overlay" id="modal-editar-adm-alimento">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar Administración de Alimento</div>
+      <button class="modal-close" onclick="closeModal('modal-editar-adm-alimento')">✕</button>
+    </div>
+    <div class="form-grid">
+      <input type="hidden" id="eaa-id">
+      <input type="hidden" id="eaa-tipo-id">
+      <input type="hidden" id="eaa-galpon-id">
+      <input type="hidden" id="eaa-ciclo-id">
+      <div class="fgroup full">
+        <label>Tipo Alimento</label>
+        <input id="eaa-tipo-display" disabled style="background:var(--bg2)">
+      </div>
+      <div class="fgroup"><label>Cantidad Utilizada (kg)</label><input id="eaa-cantidad" type="number" step="1" min="1"></div>
+      <div class="fgroup"><label>Fecha Alimentación</label><input id="eaa-fecha" type="date"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-adm-alimento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateAdmAlimento()">Guardar Cambios</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteAdmAlimento()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Administración Medicamento -->
 <div class="modal-overlay" id="modal-adm-med">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Registrar Aplicación de Medicamento</div><button class="modal-close" onclick="closeModal('modal-adm-med')">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">Registrar Aplicación de Medicamento</div>
+      <button class="modal-close" onclick="closeModal('modal-adm-med')">✕</button>
+    </div>
     <div class="form-grid">
       <div class="fgroup"><label>Medicamento</label><select id="am-tipo"></select></div>
       <div class="fgroup"><label>Galpón</label><select id="am-galpon"></select></div>
       <div class="fgroup"><label>Ciclo</label><select id="am-ciclo"></select></div>
-      <div class="fgroup"><label>Usuario</label><select id="am-usuario"></select></div>
-      <div class="fgroup"><label>Cantidad Utilizada</label><input id="am-cantidad" type="number" step="0.01"></div>
+      <div class="fgroup"><label>Cantidad Utilizada</label><input id="am-cantidad" type="number" step="0.01" min="0.01"></div>
       <div class="fgroup full"><label>Fecha Medicación</label><input id="am-fecha" type="date"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-adm-med')">Cancelar</button>
       <button class="btn btn-primary" onclick="postAdmMed()">Registrar</button>
+    </div>
+  </div>
+</div>
+<!-- Editar Administración Medicamento -->
+<div class="modal-overlay" id="modal-editar-adm-med">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar Aplicación de Medicamento</div>
+      <button class="modal-close" onclick="closeModal('modal-editar-adm-med')">✕</button>
+    </div>
+    <div class="form-grid">
+      <input type="hidden" id="eam-id">
+      <input type="hidden" id="eam-tipo-id">
+      <input type="hidden" id="eam-galpon-id">
+      <input type="hidden" id="eam-ciclo-id">
+      <div class="fgroup full">
+        <label>Medicamento</label>
+        <input id="eam-tipo-display" disabled style="background:var(--bg2)">
+      </div>
+      <div class="fgroup"><label>Cantidad Utilizada</label><input id="eam-cantidad" type="number" step="0.01" min="0.01"></div>
+      <div class="fgroup"><label>Fecha Medicación</label><input id="eam-fecha" type="date"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-adm-med')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateAdmMed()">Guardar Cambios</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteAdmMed()">🗑️ Eliminar</button>
     </div>
   </div>
 </div>

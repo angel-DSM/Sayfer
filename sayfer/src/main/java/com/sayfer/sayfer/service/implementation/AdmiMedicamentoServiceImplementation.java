@@ -73,13 +73,38 @@ public class AdmiMedicamentoServiceImplementation implements AdminMedicamentoSer
     @Override
     public AdmiMedicamentoDTO update(Integer id, AdmiMedicamentoDTO obj) {
         AdmiMedicamentoValidator.validate(obj);
-        if (repository.existsById(id)){
-            AdmiMedicamento entidad = mapper.toEntity(obj);
-            entidad.setId_admin_medicamento(id);
-            AdmiMedicamento update = repository.save(entidad);
-            return mapper.toDTO(update);
+
+        AdmiMedicamento anterior = repository.findById(id)
+                .orElseThrow(() -> new NoDataFoundException(
+                        "No existe el registro con ID " + id));
+
+        // 1. Devolver la cantidad anterior al stock
+        if (anterior.getTipo_medicamento() != null && anterior.getCantidad_utilizada_medi() != null) {
+            stockRepository.findByIdTipoMedicamento(anterior.getTipo_medicamento()).ifPresent(stock -> {
+                stock.setCantidadActual(stock.getCantidadActual().add(anterior.getCantidad_utilizada_medi()));
+                stockRepository.save(stock);
+            });
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el alimento con ID" + id);
+
+        // 2. Guardar el nuevo registro
+        AdmiMedicamento entidad = mapper.toEntity(obj);
+        entidad.setId_admin_medicamento(id);
+        AdmiMedicamento update = repository.save(entidad);
+
+        // 3. Descontar la nueva cantidad
+        if (entidad.getTipo_medicamento() != null && obj.getCantidad_utilizada() != null) {
+            Optional<StockMedicamento> stockOpt = stockRepository.findByIdTipoMedicamento(entidad.getTipo_medicamento());
+            if (stockOpt.isPresent()) {
+                StockMedicamento stock = stockOpt.get();
+                java.math.BigDecimal nuevo = stock.getCantidadActual().subtract(obj.getCantidad_utilizada());
+                if (nuevo.compareTo(java.math.BigDecimal.ZERO) < 0)
+                    throw new ValidateException("Stock insuficiente. Disponible: " + stock.getCantidadActual());
+                stock.setCantidadActual(nuevo);
+                stockRepository.save(stock);
+            }
+        }
+
+        return mapper.toDTO(update);
     }
 
     @Override

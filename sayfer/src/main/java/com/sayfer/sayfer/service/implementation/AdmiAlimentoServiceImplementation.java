@@ -76,18 +76,44 @@ public class AdmiAlimentoServiceImplementation implements AdmiAlimentoService {
         AdmiAlimento save = repository.save(entidad);
         return mapper.toDTO(save);
     }
-                                //ACTUALIZAR
+    //actualizar
     @Override
     public AdmiAlimentoDTO update(Integer id_admi_alimento, AdmiAlimentoDTO obj) {
         AdmiAlimentoValidator.validate(obj);
-        if (repository.existsById(id_admi_alimento)){
-            AdmiAlimento entidad = mapper.toEntity(obj);
-            entidad.setId_admi_alimento(id_admi_alimento);
-            AdmiAlimento update = repository.save(entidad);
-            return mapper.toDTO(update);
+
+        AdmiAlimento anterior = repository.findById(id_admi_alimento)
+                .orElseThrow(() -> new NoDataFoundException(
+                        "No existe el registro con ID " + id_admi_alimento));
+
+        // 1. Devolver la cantidad anterior al stock
+        if (anterior.getId_tipo_alimento() != null) {
+            stockRepository.findByIdTipoAlimento(anterior.getId_tipo_alimento()).ifPresent(stock -> {
+                stock.setCantidad(stock.getCantidad() + anterior.getCantidad_utilizada());
+                stockRepository.save(stock);
+            });
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el alimento con ID " + id_admi_alimento);
+
+        // 2. Guardar el nuevo registro
+        AdmiAlimento entidad = mapper.toEntity(obj);
+        entidad.setId_admi_alimento(id_admi_alimento);
+        AdmiAlimento update = repository.save(entidad);
+
+        // 3. Descontar la nueva cantidad
+        if (entidad.getId_tipo_alimento() != null && obj.getCantidad_utilizada() != null) {
+            Optional<StockAlimento> stockOpt = stockRepository.findByIdTipoAlimento(entidad.getId_tipo_alimento());
+            if (stockOpt.isPresent()) {
+                StockAlimento stock = stockOpt.get();
+                long nuevo = stock.getCantidad() - obj.getCantidad_utilizada();
+                if (nuevo < 0) throw new ValidateException(
+                        "Stock insuficiente. Disponible: " + stock.getCantidad() + " kg");
+                stock.setCantidad(nuevo);
+                stockRepository.save(stock);
+            }
+        }
+
+        return mapper.toDTO(update);
     }
+
                                 //ELIMINAR
     @Override
     @Transactional
