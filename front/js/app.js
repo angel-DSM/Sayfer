@@ -598,7 +598,28 @@ async function loadDashboard() {
              style="width:${(+s.cantidad / maxS * 100)}%"></div>
       </div>
     </div>`).join('') || '<div style="color:var(--text3);font-size:12px">Sin datos</div>';
+//stock medi
+  const data1 = await tryGet('/stock-medicamento', 'stockMed');
+  const max  = Math.max(...data1.map(d => +d.cantidadActual), 1);
 
+  document.getElementById('dash-stock-med').innerHTML = data1.map(m => {
+    const cantidad = +m.cantidadActual;
+    const nombre   = m.id_tipo_medicamento?.nombre || `Tipo ${m.id_stock_medicamento}`;
+    const unidad   = m.id_unidad?.nombre || '';
+    return `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
+        <span>${nombre}</span>
+        <span class="mono">${cantidad.toLocaleString()} ${unidad}</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill${cantidad < 5 ? ' danger' : cantidad < 20 ? ' warn' : ''}"
+             style="width:${Math.max(2, (cantidad / max * 100))}%"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--text3)">Sin datos de stock</div>';
+
+  const low = data.some(m => +m.cantidadActual < 5);
   // Alertas automáticas
   const alertas = [];
   stock.forEach(s => {
@@ -1085,13 +1106,13 @@ async function loadMortalidad() {
   });
   const entries = Object.entries(byCausa);
   const maxC    = Math.max(...entries.map(e => e[1]), 1);
-  document.getElementById('chart-causas').innerHTML = entries.length > 0
-      ? entries.map(([k, val]) => `
-        <div class="bar-col">
-          <div class="bar red" style="height:${(val / maxC * 110)}px" data-val="${val}"></div>
-          <div class="bar-lbl">${k.split(' ')[0]}</div>
-        </div>`).join('')
-      : '<div style="color:var(--text3);font-size:12px;padding:20px">Sin datos</div>';
+  document.getElementById('chart-causas').innerHTML = entries.map(([k, val]) => `
+  <div class="bar-col">
+    <span class="bar-val">${val}</span> 
+    
+    <div class="bar red" style="height:${(val / maxC * 110)}px" data-val="${val}"></div>
+    <div class="bar-lbl">${k.split(' ')[0]}</div>
+  </div>`).join('');
 }
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
