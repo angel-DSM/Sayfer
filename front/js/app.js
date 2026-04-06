@@ -997,18 +997,24 @@ async function loadTiposMed() {
 
 async function loadStockMed() {
   const data = await tryGet('/stock-medicamento', 'stockMed');
-  document.getElementById('stock-med-tbody').innerHTML = data.map(m => {
+  const max  = Math.max(...data.map(d => +d.cantidadActual), 1);
+
+  document.getElementById('stock-med-list').innerHTML = data.map(m => {
     const cantidad = +m.cantidadActual;
-    const low = cantidad < 5;
-    const nombre = m.id_tipo_medicamento?.nombre || `Tipo ${m.id_stock_medicamento}`;
-    return `<tr>
-      <td>${nombre}</td>
-      <td class="mono">${cantidad.toLocaleString()}</td>
-      <td>${low
-        ? '<span class="badge badge-red">⚠ Bajo</span>'
-        : '<span class="badge badge-green">OK</span>'}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
+    const nombre   = m.id_tipo_medicamento?.nombre || `Tipo ${m.id_stock_medicamento}`;
+    const unidad   = m.id_unidad?.nombre || '';
+    return `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
+        <span>${nombre}</span>
+        <span class="mono">${cantidad.toLocaleString()} ${unidad}</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill${cantidad < 5 ? ' danger' : cantidad < 20 ? ' warn' : ''}"
+             style="width:${Math.max(2, (cantidad / max * 100))}%"></div>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--text3)">Sin datos de stock</div>';
 
   const low = data.some(m => +m.cantidadActual < 5);
   document.getElementById('badge-med').style.display = low ? 'inline' : 'none';
@@ -1850,27 +1856,53 @@ async function prepareEditAdmAlimento(id) {
   if (!r) { toast('❌', 'Registro no encontrado', '', 't-warn'); return; }
 
   document.getElementById('eaa-id').value           = r.id_admi_alimento;
-  document.getElementById('eaa-tipo-id').value      = r.id_tipo_alimento;
-  document.getElementById('eaa-galpon-id').value    = r.id_galpon;
-  document.getElementById('eaa-ciclo-id').value     = r.id_ciclo;
-  document.getElementById('eaa-tipo-display').value = r.nombre_alimento || '';
+  document.getElementById('eaa-tipo').value = r.nombre_alimento || '';
   document.getElementById('eaa-cantidad').value     = r.cantidad_utilizada;
   document.getElementById('eaa-fecha').value        = r.fecha_alimentacion;
+
+  //llenar las consultas
+  const selT = document.getElementById('eaa-tipo');
+  selT.innerHTML = S.tiposAlimento.map(t =>
+      `<option value="${t.id_tipo_alimento}" ${t.id_tipo_alimento === r.id_tipo_alimento ? 'selected' : ''}>
+      ${t.nombre_alimento || 'Sin nombre'}
+    </option>`
+  ).join('');
+
+  const selG = document.getElementById('eaa-galpon');
+  selG.innerHTML = S.galpones.map(g =>
+      `<option value="${g.id_galpon}" ${g.id_galpon === r.id_galpon ? 'selected' : ''}>${g.nombre}</option>`
+  ).join('');
+
+  const selC = document.getElementById('eaa-ciclo');
+  selC.innerHTML = S.ciclos.map(c =>
+      `<option value="${c.id}" ${c.id === r.id_ciclo ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+  ).join('');
+
   openModal('modal-editar-adm-alimento');
 }
 
 async function updateAdmAlimento() {
-  const id      = +v('eaa-id');
+  const id       = +v('eaa-id');
+  const tipo_alimento       = +v('eaa-tipo');
   const cantidad = +v('eaa-cantidad');
-  const fecha   = v('eaa-fecha');
+  const fecha    = v('eaa-fecha');
+  const galpon   = +v('eaa-galpon');
+  const ciclo    = +v('eaa-ciclo');
 
   if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
-  if (!fecha) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!fecha)   { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!galpon)  { toast('⚠️', 'Selecciona un galpón', '', 't-warn'); return; }
+  if (!ciclo)   { toast('⚠️', 'Selecciona un ciclo', '', 't-warn'); return; }
+
+  // Obtener el tipo del registro original (no cambia en la edición)
+  const data = await tryGet('/admi-alimento', 'admAlimento');
+  const original = data.find(x => x.id_admi_alimento === id);
+  if (!original) return;
 
   const payload = {
-    id_tipo_alimento:   +v('eaa-tipo-id'),
-    id_galpon:          +v('eaa-galpon-id'),
-    id_ciclo:           +v('eaa-ciclo-id'),
+    id_tipo_alimento:   tipo_alimento,
+    id_galpon:          galpon,
+    id_ciclo:           ciclo,
     id_usuario:         S.user?.cedula,
     cantidad_utilizada: cantidad,
     fecha_alimentacion: fecha
@@ -1896,7 +1928,7 @@ async function updateAdmAlimento() {
 
 async function deleteAdmAlimento() {
   const id     = +v('eaa-id');
-  const nombre = document.getElementById('eaa-tipo-display').value;
+  const nombre = document.getElementById('eaa-tipo').value;
   if (!confirm(`⚠️ ¿Eliminar este registro de "${nombre}"?\n\nLa cantidad se devolverá al stock.\nEsta acción no se puede deshacer.`)) return;
 
   try {
@@ -1949,30 +1981,59 @@ async function postAdmMed() {
 async function prepareEditAdmMed(id) {
   const data = await tryGet('/admi-medicamento', 'admMed');
   const r = data.find(x => x.id_admi_medicamento === id);
-  if (!r) { toast('❌', 'Registro no encontrado', '', 't-warn'); return; }
 
-  document.getElementById('eam-id').value           = r.id_admi_medicamento;
-  document.getElementById('eam-tipo-id').value      = r.id_tipo_medicamento;
-  document.getElementById('eam-galpon-id').value    = r.id_galpon;
-  document.getElementById('eam-ciclo-id').value     = r.id_ciclo;
-  document.getElementById('eam-tipo-display').value = r.nombre_med || '';
-  document.getElementById('eam-cantidad').value     = r.cantidad_utilizada;
-  document.getElementById('eam-fecha').value        = r.fecha_medicacion;
+  if (!r) {
+    toast('❌', 'Registro no encontrado', '', 't-warn');
+    return;
+  }
+
+  // Asignar valores a campos básicos
+  document.getElementById('eam-id').value       = r.id_admi_medicamento;
+  document.getElementById('eam-cantidad').value = r.cantidad_utilizada;
+  document.getElementById('eam-fecha').value    = r.fecha_medicacion;
+
+  // Llenar select de Tipos de Medicamento
+  const selM = document.getElementById('eam-tipo-med');
+  selM.innerHTML = S.tiposMed.map(m =>
+      `<option value="${m.id_tipo_medicamento}" ${m.id_tipo_medicamento === r.id_tipo_medicamento ? 'selected' : ''}>
+      ${m.nombre_medicamento || m.nombre || 'Sin nombre'}
+    </option>`
+  ).join('');
+
+  // Llenar select de Galpones
+  const selG = document.getElementById('eam-galpon');
+  selG.innerHTML = S.galpones.map(g =>
+      `<option value="${g.id_galpon}" ${g.id_galpon === r.id_galpon ? 'selected' : ''}>${g.nombre}</option>`
+  ).join('');
+
+  // Llenar select de Ciclos
+  const selC = document.getElementById('eam-ciclo');
+  selC.innerHTML = S.ciclos.map(c =>
+      `<option value="${c.id}" ${c.id === r.id_ciclo ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+  ).join('');
+
   openModal('modal-editar-adm-med');
 }
 
 async function updateAdmMed() {
-  const id      = +v('eam-id');
+  const id       = +v('eam-id');
+  const tipoMed  = +v('eam-tipo-med');
   const cantidad = +v('eam-cantidad');
-  const fecha   = v('eam-fecha');
+  const fecha    = v('eam-fecha');
+  const galpon   = +v('eam-galpon');
+  const ciclo    = +v('eam-ciclo');
 
+  // Validaciones
+  if (!tipoMed)  { toast('⚠️', 'Selecciona un medicamento', '', 't-warn'); return; }
   if (!cantidad || cantidad <= 0) { toast('⚠️', 'La cantidad debe ser mayor a 0', '', 't-warn'); return; }
-  if (!fecha) { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!fecha)    { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!galpon)   { toast('⚠️', 'Selecciona un galpón', '', 't-warn'); return; }
+  if (!ciclo)    { toast('⚠️', 'Selecciona un ciclo', '', 't-warn'); return; }
 
   const payload = {
-    id_tipo_medicamento: +v('eam-tipo-id'),
-    id_galpon:           +v('eam-galpon-id'),
-    id_ciclo:            +v('eam-ciclo-id'),
+    id_tipo_medicamento: tipoMed,
+    id_galpon:           galpon,
+    id_ciclo:            ciclo,
     id_usuario:          S.user?.cedula,
     cantidad_utilizada:  cantidad,
     fecha_medicacion:    fecha
@@ -1980,17 +2041,24 @@ async function updateAdmMed() {
 
   try {
     const r = await fetch(S.apiBase + '/admi-medicamento/' + id, {
-      method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(payload)
     });
+
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       toast('❌', 'Error al actualizar', err.message || `Error ${r.status}`, 't-warn');
       return;
     }
-    toast('✅', 'Registro actualizado', 'Stock ajustado');
+
+    toast('✅', 'Registro actualizado', 'Stock de medicamento ajustado');
     closeModal('modal-editar-adm-med');
-    loadAdmMed();
-    loadStockMed();
+
+    // Recargar datos
+    if (typeof loadAdmMed === 'function') loadAdmMed();
+    if (typeof loadStockMed === 'function') loadStockMed();
+
   } catch (err) {
     toast('❌', 'Error de conexión', err.message, 't-warn');
   }

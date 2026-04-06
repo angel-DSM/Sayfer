@@ -407,13 +407,8 @@
             <svg id="spin-stock-med" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
           </button>
         </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>Medicamento</th><th>Stock</th><th>Estado</th></tr></thead>
-            <tbody id="stock-med-tbody">
-            <tr><td colspan="4" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
-            </tbody>
-          </table>
+        <div class="card-body" id="stock-med-list">
+          <div style="color:var(--text3);font-size:12px">Cargando...</div>
         </div>
       </div>
       <div class="card">
@@ -1204,15 +1199,26 @@
     </div>
     <div class="form-grid">
       <input type="hidden" id="eaa-id">
-      <input type="hidden" id="eaa-tipo-id">
-      <input type="hidden" id="eaa-galpon-id">
-      <input type="hidden" id="eaa-ciclo-id">
       <div class="fgroup full">
         <label>Tipo Alimento</label>
-        <input id="eaa-tipo-display" disabled style="background:var(--bg2)">
+        <select id="eaa-tipo"></select>
       </div>
-      <div class="fgroup"><label>Cantidad Utilizada (kg)</label><input id="eaa-cantidad" type="number" step="1" min="1"></div>
-      <div class="fgroup"><label>Fecha Alimentación</label><input id="eaa-fecha" type="date"></div>
+      <div class="fgroup">
+        <label>Galpón</label>
+        <select id="eaa-galpon"></select>
+      </div>
+      <div class="fgroup">
+        <label>Ciclo</label>
+        <select id="eaa-ciclo"></select>
+      </div>
+      <div class="fgroup">
+        <label>Cantidad Utilizada (kg)</label>
+        <input id="eaa-cantidad" type="number" step="1" min="1">
+      </div>
+      <div class="fgroup">
+        <label>Fecha Alimentación</label>
+        <input id="eaa-fecha" type="date">
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-editar-adm-alimento')">Cancelar</button>
@@ -1256,10 +1262,12 @@
       <input type="hidden" id="eam-ciclo-id">
       <div class="fgroup full">
         <label>Medicamento</label>
-        <input id="eam-tipo-display" disabled style="background:var(--bg2)">
+        <select id="eam-tipo-med"></select>
       </div>
       <div class="fgroup"><label>Cantidad Utilizada</label><input id="eam-cantidad" type="number" step="0.01" min="0.01"></div>
       <div class="fgroup"><label>Fecha Medicación</label><input id="eam-fecha" type="date"></div>
+      <div class="fgroup"><label>Galpón</label><select id="eam-galpon"></select></div>
+      <div class="fgroup"><label>Ciclo</label><select id="eam-ciclo"></select></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-editar-adm-med')">Cancelar</button>

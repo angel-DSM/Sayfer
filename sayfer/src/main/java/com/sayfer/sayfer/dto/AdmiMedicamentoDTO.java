@@ -17,7 +17,6 @@ public class AdmiMedicamentoDTO {
     private Integer id_galpon;
     private Integer id_ciclo;
     private Long id_usuario;
-    // Display fields (populated by toDTO for GET responses)
     private String nombre_med;
     private String nombre_galpon;
     private String nombre_ciclo;
