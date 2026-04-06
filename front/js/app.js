@@ -302,6 +302,7 @@ function go(tabId, el, label) {
     'usuarios':        loadUsuarios,
     'config':          () => { loadUnidades(); renderConfigStatus(); },
     'perfil':          renderProfile
+
   };
   loaders[tabId]?.();
 }
@@ -383,6 +384,14 @@ function populateSelects(modalId) {
     sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
     sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
     document.getElementById('am-fecha').value = today();
+  }
+  if (modalId === 'modal-mortalidad') {
+    sel('mo-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
+    sel('mo-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
+    sel('mo-tipo-muerte', tmu ,  'id_tipo_muerte',            x => x.nombre||`tipo ${x.id_tipo_muerte}`);
+    document.getElementById('mo-fecha').value    = today();
+    document.getElementById('mo-cantidad').value = '';
+    document.getElementById('mo-causa').value    = '';
   }
   if (modalId === 'modal-ciclo') {
     const galpones = S.galpones || [];
@@ -783,7 +792,7 @@ async function prepareEditCiclo(id) {
   document.getElementById('ec-inicio').value = fechasIni[0] || '';
   document.getElementById('ec-fin').value    = fechasFin[fechasFin.length - 1] || '';
 
-  // IDs de galpones ya vinculados
+  // ID de galpones ya vinculados
   const galponesActuales = vins.map(v => v.id_galpon?.id_galpon).filter(Boolean);
 
   // Renderizar checkboxes marcando los ya vinculados
@@ -1043,43 +1052,47 @@ async function loadTiposMuerte() {
       <td class="mono">${t.id_tipo_muerte}</td>
       <td>${t.nombre}</td>
       <td style="color:var(--text3)">${t.descripcion || '—'}</td>
-    </tr>`).join('');
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditTipoMuerte(${t.id_tipo_muerte})" title="Editar">✏️</button>` : '—'}</td>
+    </tr>`).join('') ||
+      '<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
-
 async function loadMortalidad() {
-  const data  = await tryGet('/mortalidad', 'mortalidad');
-  const hoy   = new Date().toISOString().split('T')[0];
-  document.getElementById('m-total').textContent    = data.reduce((a,m) => a + m.cantidad_muertos, 0);
-  document.getElementById('m-hoy').textContent      = data.filter(m => m.fecha_muerte === hoy).reduce((a,m) => a + m.cantidad_muertos, 0);
-  document.getElementById('m-galpones').textContent = [...new Set(data.map(m => m.id_galpon))].length;
+  const data = await tryGet('/mortalidad', 'mortalidad');
+  const hoy  = new Date().toISOString().split('T')[0];
+
+  document.getElementById('m-total').textContent    = data.reduce((a, m) => a + (+m.muertos || 0), 0);
+  document.getElementById('m-hoy').textContent      = data.filter(m => m.fecha_de_muerte === hoy).reduce((a, m) => a + (+m.muertos || 0), 0);
+  document.getElementById('m-galpones').textContent = [...new Set(data.map(m => m.id_galpon?.id_galpon).filter(Boolean))].length;
 
   document.getElementById('mortalidad-tbody').innerHTML = data.map(m => `
     <tr>
-      <td class="mono">${m.id_mortalidad}</td>
-      <td class="mono">${m.id_ciclo}</td>
-      <td class="mono">${m.id_galpon}</td>
-      <td>${m.nombre_tipo || m.id_tipo_muerte}</td>
-      <td class="mono">${m.fecha_muerte}</td>
-      <td style="color:var(--red);font-weight:700">${m.cantidad_muertos}</td>
+      <td class="mono">${m.id_Mortalidad}</td>
+      <td>${m.id_ciclo?.nombreCiclo || '—'}</td>
+      <td>${m.id_galpon?.nombre     || '—'}</td>
+      <td>${m.id_tipo_muerte?.nombre || '—'}</td>
+      <td class="mono">${m.fecha_de_muerte}</td>
+      <td style="color:var(--red);font-weight:700">${m.muertos}</td>
       <td style="color:var(--text3)">${m.causa || '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditMortalidad(${m.id_Mortalidad})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
-      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 
-  // Gráfica de barras por causa
+  // Gráfica por tipo de causa
   const byCausa = {};
   data.forEach(m => {
-    const k = m.nombre_tipo || `Tipo ${m.id_tipo_muerte}`;
-    byCausa[k] = (byCausa[k] || 0) + m.cantidad_muertos;
+    const k = m.id_tipo_muerte?.nombre || 'Sin tipo';
+    byCausa[k] = (byCausa[k] || 0) + (+m.muertos || 0);
   });
   const entries = Object.entries(byCausa);
   const maxC    = Math.max(...entries.map(e => e[1]), 1);
-  document.getElementById('chart-causas').innerHTML = entries.map(([k, val]) => `
-    <div class="bar-col">
-      <div class="bar red" style="height:${(val/maxC*110)}px" data-val="${val}"></div>
-      <div class="bar-lbl">${k.split(' ')[0]}</div>
-    </div>`).join('');
+  document.getElementById('chart-causas').innerHTML = entries.length > 0
+      ? entries.map(([k, val]) => `
+        <div class="bar-col">
+          <div class="bar red" style="height:${(val / maxC * 110)}px" data-val="${val}"></div>
+          <div class="bar-lbl">${k.split(' ')[0]}</div>
+        </div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px;padding:20px">Sin datos</div>';
 }
-
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
   const data = await tryGet('/admi-alimento', 'admAlimento');
@@ -1155,7 +1168,7 @@ function prepareEditUsuario(cedula) {
   document.getElementById('u-rol').value       = u.rol;
   document.getElementById('u-estado').value    = String(u.estado ?? true);
 
-  // Mostrar campo estado y hint de contraseña
+  // Mostrar campo estado e hint de contraseña
   document.getElementById('u-estado-group').style.display = '';
   document.getElementById('u-pass-hint').style.display    = '';
 
@@ -1809,12 +1822,139 @@ function postTipoMuerte() {
       { nombre: v('tmu-nombre'), descripcion: v('tmu-desc') },
       'modal-tipo-muerte', loadTiposMuerte, 'Tipo Muerte');
 }
-function postMortalidad() {
-  doPost('/mortalidad',
-      { id_ciclo: +v('mo-ciclo'), id_galpon: +v('mo-galpon'),
-        id_tipo_muerte: +v('mo-tipo-muerte'), fecha_muerte: v('mo-fecha'),
-        cantidad_muertos: +v('mo-cantidad'), causa: v('mo-causa') },
-      'modal-mortalidad', loadMortalidad, 'Mortalidad');
+async function postMortalidad() {
+  if (!v('mo-ciclo'))       { toast('⚠️', 'Selecciona un ciclo', '', 't-warn'); return; }
+  if (!v('mo-galpon'))      { toast('⚠️', 'Selecciona un galpón', '', 't-warn'); return; }
+  if (!v('mo-tipo-muerte')) { toast('⚠️', 'Selecciona el tipo de muerte', '', 't-warn'); return; }
+  if (!v('mo-fecha'))       { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!+v('mo-cantidad') || +v('mo-cantidad') < 1) { toast('⚠️', 'La cantidad debe ser al menos 1', '', 't-warn'); return; }
+
+  const payload = {
+    id_ciclo:       { id: +v('mo-ciclo') },
+    id_galpon:      { id_galpon: +v('mo-galpon') },
+    id_tipo_muerte: { id_tipo_muerte: +v('mo-tipo-muerte') },
+    fecha_de_muerte: v('mo-fecha'),
+    muertos:         v('mo-cantidad'),
+    causa:           v('mo-causa') || ''
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/mortalidad', {
+      method: 'POST', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('❌', 'Error al registrar', err.message || `Error ${r.status}`, 't-warn');
+      return;
+    }
+    toast('✅', 'Baja registrada');
+    closeModal('modal-mortalidad');
+    loadMortalidad();
+  } catch (err) {
+    toast('❌', 'Error de conexión', err.message, 't-warn');
+  }
+}
+// ── Tipo de Muerte: editar y eliminar ────────────────────
+function prepareEditTipoMuerte(id) {
+  const t = S.tiposMuerte.find(x => x.id_tipo_muerte === id);
+  if (!t) return;
+  document.getElementById('etmu-id').value     = t.id_tipo_muerte;
+  document.getElementById('etmu-nombre').value = t.nombre;
+  document.getElementById('etmu-desc').value   = t.descripcion || '';
+  openModal('modal-editar-tipo-muerte');
+}
+
+async function updateTipoMuerte() {
+  const id     = +v('etmu-id');
+  const nombre = v('etmu-nombre').trim();
+  if (!nombre) { toast('⚠️', 'El nombre es obligatorio', '', 't-warn'); return; }
+  try {
+    const r = await fetch(S.apiBase + '/tipo-muerte/' + id, {
+      method: 'PUT', headers: headers(),
+      body: JSON.stringify({ nombre, descripcion: v('etmu-desc') })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); toast('❌', 'Error', e.message||'', 't-warn'); return; }
+    toast('✅', 'Tipo de muerte actualizado');
+    closeModal('modal-editar-tipo-muerte');
+    loadTiposMuerte();
+  } catch (err) { toast('❌', 'Error de conexión', err.message, 't-warn'); }
+}
+
+async function deleteTipoMuerte() {
+  const id     = +v('etmu-id');
+  const nombre = v('etmu-nombre');
+  if (!confirm(`⚠️ ¿Eliminar el tipo "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const r = await fetch(S.apiBase + '/tipo-muerte/' + id, { method: 'DELETE', headers: headers() });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', 'Puede tener registros asociados', 't-warn'); return; }
+    toast('✅', 'Tipo eliminado');
+    closeModal('modal-editar-tipo-muerte');
+    loadTiposMuerte();
+  } catch { toast('❌', 'Error al eliminar', '', 't-warn'); }
+}
+
+// ── Mortalidad: editar y eliminar ────────────────────────
+async function prepareEditMortalidad(id) {
+  const data = await tryGet('/mortalidad', 'mortalidad');
+  const m = data.find(x => x.id_Mortalidad === id);
+  if (!m) { toast('❌', 'Registro no encontrado', '', 't-warn'); return; }
+
+  document.getElementById('emo-id').value       = m.id_Mortalidad;
+  document.getElementById('emo-fecha').value    = m.fecha_de_muerte;
+  document.getElementById('emo-cantidad').value = m.muertos;
+  document.getElementById('emo-causa').value    = m.causa || '';
+
+  // Llenar selects con valor actual preseleccionado
+  document.getElementById('emo-ciclo').innerHTML = S.ciclos.map(c =>
+      `<option value="${c.id}" ${c.id === m.id_ciclo?.id ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+  ).join('');
+  document.getElementById('emo-galpon').innerHTML = S.galpones.map(g =>
+      `<option value="${g.id_galpon}" ${g.id_galpon === m.id_galpon?.id_galpon ? 'selected' : ''}>${g.nombre}</option>`
+  ).join('');
+  document.getElementById('emo-tipo-muerte').innerHTML = S.tiposMuerte.map(t =>
+      `<option value="${t.id_tipo_muerte}" ${t.id_tipo_muerte === m.id_tipo_muerte?.id_tipo_muerte ? 'selected' : ''}>${t.nombre}</option>`
+  ).join('');
+
+  openModal('modal-editar-mortalidad');
+}
+
+async function updateMortalidad() {
+  const id       = +v('emo-id');
+  const cantidad = v('emo-cantidad');
+  const fecha    = v('emo-fecha');
+  if (!fecha)    { toast('⚠️', 'Ingresa la fecha', '', 't-warn'); return; }
+  if (!+cantidad || +cantidad < 1) { toast('⚠️', 'La cantidad debe ser al menos 1', '', 't-warn'); return; }
+
+  const payload = {
+    id_ciclo:        { id: +v('emo-ciclo') },
+    id_galpon:       { id_galpon: +v('emo-galpon') },
+    id_tipo_muerte:  { id_tipo_muerte: +v('emo-tipo-muerte') },
+    fecha_de_muerte: fecha,
+    muertos:         cantidad,
+    causa:           v('emo-causa') || ''
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/mortalidad/' + id, {
+      method: 'PUT', headers: headers(), body: JSON.stringify(payload)
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); toast('❌', 'Error', e.message||`Error ${r.status}`, 't-warn'); return; }
+    toast('✅', 'Registro actualizado');
+    closeModal('modal-editar-mortalidad');
+    loadMortalidad();
+  } catch (err) { toast('❌', 'Error de conexión', err.message, 't-warn'); }
+}
+
+async function deleteMortalidad() {
+  const id = +v('emo-id');
+  if (!confirm('⚠️ ¿Eliminar este registro de baja?\nEsta acción no se puede deshacer.')) return;
+  try {
+    const r = await fetch(S.apiBase + '/mortalidad/' + id, { method: 'DELETE', headers: headers() });
+    if (!r.ok) { toast('❌', 'No se pudo eliminar', '', 't-warn'); return; }
+    toast('✅', 'Registro eliminado');
+    closeModal('modal-editar-mortalidad');
+    loadMortalidad();
+  } catch { toast('❌', 'Error al eliminar', '', 't-warn'); }
 }
 async function postAdmAlimento() {
   const cantidad = +v('aa-cantidad');
@@ -2099,7 +2239,7 @@ function NewUsuario() {
   document.getElementById('u-contrasena').value = '';
   document.getElementById('u-rol').value        = 'operador';
 
-  // Ocultar estado y hint (solo en edición)
+  // Ocultar estado e hint (solo en edición)
   document.getElementById('u-estado-group').style.display = 'none';
   document.getElementById('u-pass-hint').style.display    = 'none';
 

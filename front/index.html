@@ -359,7 +359,7 @@
         <div class="card-header"><span class="card-title">Tipos de Alimento</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
             <tbody id="tipos-alimento-tbody">
             <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -522,7 +522,7 @@
         <div class="card-header"><span class="card-title">Tipos de Muerte registrados</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
             <tbody id="tipos-muerte-tbody">
             <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -546,7 +546,7 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Ciclo</th><th>Galpón</th><th>Tipo Muerte</th><th>Fecha</th><th>Cantidad</th><th>Causa</th></tr></thead>
+          <thead><tr><th>ID</th><th>Ciclo</th><th>Galpón</th><th>Tipo Muerte</th><th>Fecha</th><th>Cantidad</th><th>Causa</th><th>Acciones</th></tr></thead>
           <tbody id="mortalidad-tbody">
           <tr><td colspan="7" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
           </tbody>
@@ -555,6 +555,48 @@
     </div>
   </div><!-- /tab-mortalidad -->
 
+  <!-- Mortalidad -->
+  <div class="modal-overlay" id="modal-mortalidad">
+    <div class="modal">
+      <div class="modal-header"><div class="modal-title">Registrar Baja</div><button class="modal-close" onclick="closeModal('modal-mortalidad')">✕</button></div>
+      <div class="form-grid">
+        <div class="fgroup"><label>Ciclo</label><select id="mo-ciclo"></select></div>
+        <div class="fgroup"><label>Galpón</label><select id="mo-galpon"></select></div>
+        <div class="fgroup"><label>Tipo de Muerte</label><select id="mo-tipo-muerte"></select></div>
+        <div class="fgroup"><label>Fecha</label><input id="mo-fecha" type="date"></div>
+        <div class="fgroup"><label>Cantidad Muertos</label><input id="mo-cantidad" type="number" min="1" placeholder="0"></div>
+        <div class="fgroup full"><label>Causa (detalle)</label><input id="mo-causa" type="text" placeholder="Descripción adicional..."></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-mortalidad')">Cancelar</button>
+        <button class="btn btn-primary" onclick="postMortalidad()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editar Baja -->
+  <div class="modal-overlay" id="modal-editar-mortalidad">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Editar Registro de Baja</div>
+        <button class="modal-close" onclick="closeModal('modal-editar-mortalidad')">✕</button>
+      </div>
+      <div class="form-grid">
+        <input type="hidden" id="emo-id">
+        <div class="fgroup"><label>Ciclo</label><select id="emo-ciclo"></select></div>
+        <div class="fgroup"><label>Galpón</label><select id="emo-galpon"></select></div>
+        <div class="fgroup"><label>Tipo de Muerte</label><select id="emo-tipo-muerte"></select></div>
+        <div class="fgroup"><label>Fecha</label><input id="emo-fecha" type="date"></div>
+        <div class="fgroup"><label>Cantidad Muertos</label><input id="emo-cantidad" type="number" min="1"></div>
+        <div class="fgroup full"><label>Causa (detalle)</label><input id="emo-causa" type="text"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-editar-mortalidad')">Cancelar</button>
+        <button class="btn btn-primary" onclick="updateMortalidad()">Guardar Cambios</button>
+        <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteMortalidad()">🗑️ Eliminar</button>
+      </div>
+    </div>
+  </div>
   <!-- ── ADM. ALIMENTO ── -->
   <div class="tab-content" id="tab-adm-alimento">
     <div class="page-header">
@@ -1138,7 +1180,10 @@
 <!-- Tipo Muerte -->
 <div class="modal-overlay" id="modal-tipo-muerte">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Nuevo Tipo de Muerte</div><button class="modal-close" onclick="closeModal('modal-tipo-muerte')">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">Nuevo Tipo de Muerte</div>
+      <button class="modal-close" onclick="closeModal('modal-tipo-muerte')">✕</button>
+    </div>
     <div class="form-grid">
       <div class="fgroup full"><label>Nombre</label><input id="tmu-nombre" type="text" placeholder="Aplastamiento"></div>
       <div class="fgroup full"><label>Descripción</label><textarea id="tmu-desc" rows="2"></textarea></div>
@@ -1150,21 +1195,22 @@
   </div>
 </div>
 
-<!-- Mortalidad -->
-<div class="modal-overlay" id="modal-mortalidad">
+<!-- Editar Tipo de Muerte -->
+<div class="modal-overlay" id="modal-editar-tipo-muerte">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Registrar Baja</div><button class="modal-close" onclick="closeModal('modal-mortalidad')">✕</button></div>
+    <div class="modal-header">
+      <div class="modal-title">Editar Tipo de Muerte</div>
+      <button class="modal-close" onclick="closeModal('modal-editar-tipo-muerte')">✕</button>
+    </div>
     <div class="form-grid">
-      <div class="fgroup"><label>Ciclo</label><select id="mo-ciclo"></select></div>
-      <div class="fgroup"><label>Galpón</label><select id="mo-galpon"></select></div>
-      <div class="fgroup"><label>Tipo de Muerte</label><select id="mo-tipo-muerte"></select></div>
-      <div class="fgroup"><label>Fecha</label><input id="mo-fecha" type="date"></div>
-      <div class="fgroup"><label>Cantidad Muertos</label><input id="mo-cantidad" type="number" min="1" placeholder="0"></div>
-      <div class="fgroup full"><label>Causa (detalle)</label><input id="mo-causa" type="text" placeholder="Descripción adicional..."></div>
+      <input type="hidden" id="etmu-id">
+      <div class="fgroup full"><label>Nombre</label><input id="etmu-nombre" type="text"></div>
+      <div class="fgroup full"><label>Descripción</label><textarea id="etmu-desc" rows="2"></textarea></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-mortalidad')">Cancelar</button>
-      <button class="btn btn-primary" onclick="postMortalidad()">Registrar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-tipo-muerte')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateTipoMuerte()">Guardar Cambios</button>
+      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer" onclick="deleteTipoMuerte()">🗑️ Eliminar</button>
     </div>
   </div>
 </div>
