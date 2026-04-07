@@ -398,7 +398,13 @@ function populateSelects(modalId) {
     if (!el) return;
     el.innerHTML = arr.map(x => `<option value="${x[valKey]}">${lblFn(x)}</option>`).join('');
   };
-
+  // Ciclos: carga galpones en el select y limpia campos al abrir
+  if (modalId === 'modal-ciclo') {
+    sel('c-galpon', g, 'id_galpon', x => x.nombre);
+    document.getElementById('c-nombre').value = '';
+    document.getElementById('c-inicio').value = today();
+    document.getElementById('c-fin').value    = '';
+  }
   const { galpones: g, ciclos: c, tiposAlimento: ta,
     tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
 
@@ -1436,6 +1442,52 @@ function updateGalponPreview() {
   const nombres = Array.from(checks).map(c => c.closest('label').querySelector('span').textContent);
   document.getElementById('c-galpon-preview').textContent =
       nombres.length > 0 ? '✔ ' + nombres.join(', ') : 'Ningún galpón seleccionado';
+}
+// Llena un <select> de galpones con opción pre-seleccionada
+async function fillGalponSelect(selectId, selectedId = null) {
+  const galpones = await tryGet('/galpon', 'galpones');
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">— Seleccione un galpón —</option>' +
+      galpones.map(g =>
+          `<option value="${g.id_galpon}" ${g.id_galpon === selectedId ? 'selected' : ''}>${g.nombre}</option>`
+      ).join('');
+}
+
+// Abre el modal de edición con los datos del ciclo (solo ADMIN)
+async function prepareEditCiclo(id) {
+  const ciclo = S.ciclos.find(c => c.id_ciclo === id);
+  if (!ciclo) return;
+  document.getElementById('ec-id').value     = ciclo.id_ciclo;
+  document.getElementById('ec-nombre').value = ciclo.nombre_ciclo || '';
+  document.getElementById('ec-inicio').value = ciclo.fecha_inicio || '';
+  document.getElementById('ec-fin').value    = ciclo.fecha_fin    || '';
+  await fillGalponSelect('ec-galpon', ciclo.id_galpon?.id_galpon);
+  openModal('modal-editar-ciclo');
+}
+
+// Envía PUT con header X-User-Rol para protección de rol
+async function updateCiclo() {
+  const id = +document.getElementById('ec-id').value;
+  const payload = {
+    nombre_ciclo: document.getElementById('ec-nombre').value,
+    fecha_inicio: document.getElementById('ec-inicio').value,
+    fecha_fin:    document.getElementById('ec-fin').value || null,
+    id_galpon:    { id_galpon: +document.getElementById('ec-galpon').value }
+  };
+  try {
+    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
+      method: 'PUT',
+      headers: { ...headers(), 'X-User-Rol': S.user?.rol || '' },
+      body: JSON.stringify(payload)
+    });
+    const res = await r.json();
+    if (!r.ok) { toast('❌', 'Error', res.message || 'No se pudo actualizar'); return; }
+    toast('✅', 'Ciclo actualizado', payload.nombre_ciclo);
+    closeModal('modal-editar-ciclo');
+    loadCiclos();
+  } catch (err) {
+    toast('❌', 'Error de red', err.message);
+  }
 }
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');

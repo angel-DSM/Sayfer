@@ -1,5 +1,6 @@
 package com.sayfer.sayfer.mapper;
 
+import com.sayfer.sayfer.dto.CicloProduccionDTO;
 import com.sayfer.sayfer.dto.GalponCicloProduccionDTO;
 import com.sayfer.sayfer.entity.CicloProduccion;
 import com.sayfer.sayfer.entity.Galpon;
@@ -16,11 +17,13 @@ public class GalponCicloProduccionMapper extends GenericMapper<GalponCicloProduc
     @Autowired
     private CicloProduccionMapper cicloProduccionMapper;
 
+
     @Override
     public GalponCicloProduccionDTO toDTO(GalponCicloProduccion entity) {
         if (entity == null) return null;
         return GalponCicloProduccionDTO.builder()
                 .id_galpon_ciclo_produccion(entity.getId_galpon_ciclo_produccion())
+                .nombreCiclo(entity.getNombreCiclo())
                 .fecha_inicio(entity.getFecha_inicio())
                 .fecha_fin(entity.getFecha_fin())
                 .id_galpon(galponMapper.toDTO(entity.getId_galpon()))
@@ -41,7 +44,7 @@ public class GalponCicloProduccionMapper extends GenericMapper<GalponCicloProduc
         CicloProduccion ciclo = null;
         if (dto.getId_ciclo() != null) {
             ciclo = new CicloProduccion();
-            ciclo.setId(dto.getId_ciclo().getId());  // CicloProduccion.id = id_ciclo en BD
+            ciclo.setId(dto.getId_ciclo().getId());
         }
 
         return GalponCicloProduccion.builder()
@@ -52,4 +55,5 @@ public class GalponCicloProduccionMapper extends GenericMapper<GalponCicloProduc
                 .id_ciclo(ciclo)
                 .build();
     }
+
 }

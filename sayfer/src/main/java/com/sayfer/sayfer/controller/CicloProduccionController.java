@@ -2,7 +2,9 @@ package com.sayfer.sayfer.controller;
 
 import com.sayfer.sayfer.dto.ApiResponse;
 import com.sayfer.sayfer.dto.CicloProduccionDTO;
+import com.sayfer.sayfer.dto.GalponDTO;
 import com.sayfer.sayfer.service.CicloProduccionService;
+import com.sayfer.sayfer.service.GalponService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,42 +16,56 @@ import java.util.List;
 public class CicloProduccionController {
 
     private final CicloProduccionService service;
+    private final GalponService          galponService;
 
-    public CicloProduccionController(CicloProduccionService service) {
-        this.service = service;
+    public CicloProduccionController(CicloProduccionService service,
+                                     GalponService galponService) {
+        this.service      = service;
+        this.galponService = galponService;
     }
 
-
+    // GET /ciclo-produccion  → lista todos los ciclos (incluye nombre del galpón via DTO)
     @GetMapping
     public ResponseEntity<ApiResponse<List<CicloProduccionDTO>>> findAll() {
-        List<CicloProduccionDTO> resultado = service.findAll();
-        return new ApiResponse<>(resultado, true, "Listado de Ciclo de producción")
+        return new ApiResponse<>(service.findAll(), true, "Listado de ciclos de producción")
                 .createResponse();
     }
 
     // GET /ciclo-produccion/1
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CicloProduccionDTO>> findById(@PathVariable Integer id) {
-        CicloProduccionDTO resultado = service.findById(id);
-        return new ApiResponse<>(resultado, true, "Ciclo de producción encontrado")
+        return new ApiResponse<>(service.findById(id), true, "Ciclo encontrado")
+                .createResponse();
+    }
+
+    // GET /ciclo-produccion/galpones  → lista de galpones para llenar el <select>
+    @GetMapping("/galpones")
+    public ResponseEntity<ApiResponse<List<GalponDTO>>> getGalpones() {
+        return new ApiResponse<>(galponService.findAll(), true, "Galpones disponibles")
                 .createResponse();
     }
 
     // POST /ciclo-produccion
     @PostMapping
-    public ResponseEntity<ApiResponse<CicloProduccionDTO>> create(@RequestBody CicloProduccionDTO dto) {
-        CicloProduccionDTO resultado = service.create(dto);
-        return new ApiResponse<>(resultado, true, "Ciclo de producción creado exitosamente")
+    public ResponseEntity<ApiResponse<CicloProduccionDTO>> create(
+            @RequestBody CicloProduccionDTO dto) {
+        return new ApiResponse<>(service.create(dto), true, "Ciclo creado exitosamente")
                 .createResponse(HttpStatus.CREATED);
     }
 
-    // PUT /ciclo-produccion/1
+    // PUT /ciclo-produccion/1  → protegido: solo rol ADMIN
+    // El frontend envía el header  X-User-Rol: admin
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CicloProduccionDTO>> update(
+    public ResponseEntity<? extends ApiResponse<? extends Object>> update(
             @PathVariable Integer id,
-            @RequestBody CicloProduccionDTO dto) {
-        CicloProduccionDTO resultado = service.update(id, dto);
-        return new ApiResponse<>(resultado, true, "Ciclo de producción actualizado exitosamente")
+            @RequestBody CicloProduccionDTO dto,
+            @RequestHeader(value = "X-User-Rol", defaultValue = "") String rol) {
+
+        if (!"admin".equalsIgnoreCase(rol)) {
+            return new ApiResponse<>(null, false, "Acceso denegado: se requiere rol ADMIN")
+                    .createResponse(HttpStatus.FORBIDDEN);
+        }
+        return new ApiResponse<>(service.update(id, dto), true, "Ciclo actualizado exitosamente")
                 .createResponse();
     }
 
@@ -57,7 +73,7 @@ public class CicloProduccionController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Object>> delete(@PathVariable Integer id) {
         service.delete(id);
-        return new ApiResponse<>(null, true, "Ciclo de producción eliminado exitosamente")
+        return new ApiResponse<>(null, true, "Ciclo eliminado exitosamente")
                 .createResponse();
     }
 }

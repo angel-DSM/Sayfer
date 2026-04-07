@@ -510,7 +510,7 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre</th><th>galpon</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>ID</th><th>Nombre</th><th>Galpón</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="ciclos-tbody">
           <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
@@ -1004,12 +1004,10 @@
       <button class="modal-close" onclick="closeModal('modal-ciclo')">✕</button>
     </div>
     <div class="form-grid">
-
       <div class="fgroup full">
         <label>Nombre del Ciclo</label>
         <input id="c-nombre" type="text" placeholder="Ciclo 2026-A">
       </div>
-
       <div class="fgroup">
         <label>Fecha Inicio</label>
         <input id="c-inicio" type="date">
@@ -1022,17 +1020,7 @@
       <!-- Selección múltiple de galpones -->
       <div class="fgroup full">
         <label>Galpones</label>
-        <div id="c-galpon-lista" style="
-    max-height: 160px;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg2);
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  ">
+        <div id="c-galpon-lista" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:8px 12px;display:flex;flex-direction:column;gap:8px;">
           <!-- se llena dinámicamente desde JS -->
         </div>
         <div id="c-galpon-preview" style="margin-top:6px;font-size:12px;color:var(--text3)">
@@ -1047,6 +1035,36 @@
     </div>
   </div>
 </div>
+
+<!-- ── EDITAR CICLO (solo ADMIN) ── -->
+<div class="modal-overlay" id="modal-editar-ciclo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Editar Ciclo de Producción</div>
+      <button class="modal-close" onclick="closeModal('modal-editar-ciclo')">✕</button>
+    </div>
+    <div class="form-grid">
+      <input type="hidden" id="ec-id">
+      <div class="fgroup full"><label>Nombre del Ciclo</label><input id="ec-nombre" type="text"></div>
+      <div class="fgroup"><label>Fecha Inicio</label><input id="ec-inicio" type="date"></div>
+      <div class="fgroup"><label>Fecha Fin (opcional)</label><input id="ec-fin" type="date"></div>
+      <div class="fgroup full">
+        <label>Galpones</label>
+        <div id="ec-galpon-lista" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:8px 12px;display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="ec-galpon-preview" style="margin-top:6px;font-size:12px;color:var(--text3)">Ningún galpón seleccionado</div>
+      </div>
+      <div id="ec-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="ec-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--red);color:white;margin-right:auto" onclick="deleteCiclo()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-ciclo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateCiclo()">Actualizar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Tipo Alimento -->
 <div class="modal-overlay" id="modal-tipo-alimento">
   <div class="modal">

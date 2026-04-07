@@ -6,12 +6,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "ciclo_produccion")
 @Data
+@Table(name = "ciclo_produccion")
 public class CicloProduccion {
 
     @Id
