@@ -2512,11 +2512,13 @@ async function generarReportePDF() {
     let y = 15;
 
     // Cargar datos necesarios
-    const [mort, stockAlim, stockMed, vinculos] = await Promise.all([
+    const [mort, stockAlim, stockMed, vinculos, admiAlim, admiMed] = await Promise.all([
       tryGet('/mortalidad',             'mortalidad'),
       tryGet('/stock-alimento',         'stockAlim'),
       tryGet('/stock-medicamento',      'stockMed'),
       tryGet('/galpon-ciclo-produccion','vinculos'),
+      tryGet('/admi-alimento',          'admiAlimento'),
+      tryGet('/admi-medicamento',       'admiMedicamento'),
     ]);
 
     const galpones = S.galpones || [];
@@ -2604,6 +2606,44 @@ async function generarReportePDF() {
         s.id_tipo_medicamento?.categoria || '—',
         (+s.cantidadActual).toLocaleString(),
         s.id_tipo_medicamento?.unidad || '—'
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Administración de Alimentos ──
+    if (y > 200) { doc.addPage(); y = 15; }
+    seccion('Administración de Alimentos');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Fecha', 'Galpón', 'Ciclo', 'Alimento', 'Cantidad (kg)']],
+      body: admiAlim.map(a => [
+        a.fecha_alimentacion || '—',
+        a.nombre_galpon       || '—',
+        a.nombre_ciclo        || '—',
+        a.nombre_alimento     || '—',
+        (+a.cantidad_utilizada).toLocaleString()
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [234, 179, 8], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Administración de Medicamentos ──
+    if (y > 200) { doc.addPage(); y = 15; }
+    seccion('Administración de Medicamentos');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Fecha', 'Galpón', 'Ciclo', 'Medicamento', 'Cantidad']],
+      body: admiMed.map(a => [
+        a.fecha_medicacion || '—',
+        a.nombre_galpon    || '—',
+        a.nombre_ciclo     || '—',
+        a.nombre_med       || '—',
+        (+a.cantidad_utilizada).toLocaleString()
       ]),
       theme: 'striped',
       headStyles: { fillColor: [59, 130, 246], textColor: 255 },
