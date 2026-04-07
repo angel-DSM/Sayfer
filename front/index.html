@@ -296,27 +296,31 @@
     <div class="grid-2">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Mortalidad — ciclos</span>
+          <span class="card-title">Mortalidad por Ciclo</span>
           <span class="chip" id="chip-total-muertos">Total: —</span>
         </div>
-        <div class="card-body">
-          <div class="chart-bars" id="chart-mortalidad"></div>
-          <div class="chart-legend">
-            <span><span class="dot-sq" style="background:var(--red)"></span>Bajas</span>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Stock de Alimento</span></div>
-        <div class="card-body" id="dash-stock-alimento">
+        <div class="card-body" id="dash-mort-ciclos">
           <div style="color:var(--text3);font-size:12px">Cargando...</div>
         </div>
       </div>
+
+      <!-- Aves vivas por galpón -->
       <div class="card">
-        <div class="card-header"><span class="card-title">Stock de medicamento</span></div>
-        <div class="card-body" id="dash-stock-med">
+        <div class="card-header">
+          <span class="card-title">Aves Vivas por Galpón</span>
+        </div>
+        <div class="card-body" id="dash-aves-galpon">
           <div style="color:var(--text3);font-size:12px">Cargando...</div>
         </div>
+      </div>
+
+    </div>
+
+    <!-- Stock de alimento -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="card-title">Stock de Alimento</span></div>
+      <div class="card-body" id="dash-stock-alimento">
+        <div style="color:var(--text3);font-size:12px">Cargando...</div>
       </div>
     </div>
 

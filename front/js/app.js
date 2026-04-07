@@ -535,58 +535,126 @@ async function loadDashboard() {
   const now = new Date().toLocaleString('es-CO');
   document.getElementById('dash-updated').textContent = `Última actualización: ${now}`;
 
-  const mort  = await tryGet('/mortalidad', 'mortalidad');
-  const hoy   = new Date().toISOString().split('T')[0];
-  const bajasHoy   = mort.filter(m => m.fecha_muerte === hoy).reduce((a,m) => a + m.cantidad_muertos, 0);
-  const bajas7dias = mort.slice(0,7).reduce((a,m) => a + m.cantidad_muertos, 0);
+  // ── Datos base ────────────────────────────────────────
+  const [mort, stock, stockMed, vinculosDash] = await Promise.all([
+    tryGet('/mortalidad',              'mortalidad'),
+    tryGet('/stock-alimento',          'stockAlimento'),
+    tryGet('/stock-medicamento',       'stockMed'),
+    tryGet('/galpon-ciclo-produccion', 'vinculos')
+  ]);
+  if (!S.vinculos?.length) S.vinculos = vinculosDash;
 
-  document.getElementById('s-galpones').textContent      = S.galpones.length;
-  document.getElementById('s-ciclos').textContent        = S.ciclos.filter(c => !c.fecha_fin || c.fecha_fin > today()).length;
+  const hoy        = new Date().toISOString().split('T')[0];
+  const bajasHoy   = mort.filter(m => m.fecha_de_muerte === hoy).reduce((a,m) => a + (+m.muertos||0), 0);
+  const bajas7dias = mort.reduce((a,m) => a + (+m.muertos||0), 0);
+
+  document.getElementById('s-galpones').textContent       = S.galpones.length;
+  document.getElementById('s-ciclos').textContent         = S.ciclos.filter(c => {
+    const vins = vinculosDash.filter(v => v.id_ciclo?.id === c.id);
+    const fins  = vins.map(v => v.fecha_fin).filter(Boolean).sort();
+    const fin   = fins[fins.length - 1] || null;
+    return !fin || fin > today();
+  }).length;
   document.getElementById('s-muertos-hoy').textContent   = bajasHoy;
-  document.getElementById('s-muertos-nota').textContent  = `${bajas7dias} en últimos 7 días`;
-  document.getElementById('s-tipos-alimento').textContent= S.tiposAlimento.length;
-  document.getElementById('s-tipos-med').textContent     = S.tiposMed.length;
+  document.getElementById('s-muertos-nota').textContent  = `${bajas7dias} total registradas`;
+  document.getElementById('s-tipos-alimento').textContent = S.tiposAlimento.length;
+  document.getElementById('s-tipos-med').textContent      = S.tiposMed.length;
+  document.getElementById('chip-total-muertos').textContent = `Total: ${bajas7dias}`;
 
-  // Tabla de ciclos (dashboard)
-  const vinculosDash = S.vinculos || await tryGet('/galpon-ciclo-produccion', 'vinculos');
+  // ── Tabla de ciclos ───────────────────────────────────
   document.getElementById('dash-ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    const vins = vinculosDash.filter(v => v.id_ciclo?.id === c.id || v.id_ciclo?.id_ciclo === c.id);
-    const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
-    const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
+    const vins       = vinculosDash.filter(v => v.id_ciclo?.id === c.id);
+    const fechasIni  = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
+    const fechasFin  = vins.map(v => v.fecha_fin).filter(Boolean).sort();
     const fechaInicio = fechasIni[0] || null;
     const fechaFin    = fechasFin[fechasFin.length - 1] || null;
-    const activo = !fechaFin || fechaFin > today();
+    const activo      = !fechaFin || fechaFin > today();
     return `<tr>
-    <td class="mono">${c.id}</td>
-    <td>${c.nombreCiclo || '—'}</td>
-    <td class="mono">${fechaInicio || '—'}</td>
-    <td class="mono">${fechaFin || '—'}</td>
-    <td>${activo
-        ? '<span class="badge badge-green">● Activo</span>'
-        : '<span class="badge badge-gray">Cerrado</span>'}</td>
-  </tr>`;
+      <td class="mono">${c.id}</td>
+      <td>${c.nombreCiclo || '—'}</td>
+      <td class="mono">${fechaInicio || '—'}</td>
+      <td class="mono">${fechaFin || '—'}</td>
+      <td>${activo ? '<span class="badge badge-green">● Activo</span>' : '<span class="badge badge-gray">Cerrado</span>'}</td>
+    </tr>`;
   }).join('');
 
-  // Gráfica mortalidad últimos 7 días
-  const days = [...Array(7)].map((_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - 6 + i);
-    return d.toISOString().split('T')[0];
+  // ── Mortalidad por ciclo (barras) ─────────────────────
+  const mortByCiclo = {};
+  mort.forEach(m => {
+    const nombre = m.id_ciclo?.nombreCiclo || `Ciclo ${m.id_ciclo?.id || '?'}`;
+    mortByCiclo[nombre] = (mortByCiclo[nombre] || 0) + (+m.muertos || 0);
   });
-  const byDay = days.map(d => ({
-    label: d.slice(5),
-    val: mort.filter(m => m.fecha_muerte === d).reduce((a,m) => a + m.cantidad_muertos, 0)
-  }));
-  const maxM = Math.max(...byDay.map(d => d.val), 1);
-  document.getElementById('chart-mortalidad').innerHTML = byDay.map(d => `
-    <div class="bar-col">
-      <div class="bar red" style="height:${(d.val/maxM*140)}px" data-val="${d.val} bajas"></div>
-      <div class="bar-lbl">${d.label}</div>
-    </div>`).join('');
-  document.getElementById('chip-total-muertos').textContent = `Total 7d: ${bajas7dias}`;
+  const cicloEntries = Object.entries(mortByCiclo);
+  const maxMC = Math.max(...cicloEntries.map(e => e[1]), 1);
 
-  // Stock alimento
-  const stock = await tryGet('/stock-alimento', 'stockAlimento');
-  const maxS  = Math.max(...stock.map(s => +s.cantidad), 1);
+  document.getElementById('dash-mort-ciclos').innerHTML = cicloEntries.length > 0
+      ? `<div class="chart-bars" style="margin-bottom:8px">
+      ${cicloEntries.map(([nombre, val]) => `
+        <div class="bar-col">
+          <span class="bar-val" style="color:var(--red); font-size:10px; font-weight:bold; margin-bottom:2px;">
+            ${val}
+          </span>
+          
+          <div class="bar red" 
+               style="height:${Math.max(4, (val / maxMC) * 120)}px" 
+               title="${val} bajas">
+          </div>
+          
+          <div class="bar-lbl">
+            ${nombre.length > 8 ? nombre.slice(0, 8) + '…' : nombre}
+          </div>
+        </div>`).join('')}
+     </div>
+     <div class="chart-legend">
+       <span><span class="dot-sq" style="background:var(--red)"></span>Bajas por ciclo</span>
+     </div>`
+      : '<div style="color:var(--text3);font-size:12px">Sin registros de mortalidad</div>';
+  // ── Aves vivas por galpón (barras con % mortalidad) ───
+  const alertas = [];
+  const iconAlerta = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>`;
+
+  const avesData = S.galpones.map(g => {
+    const capacidad = +g.capacidad || 0;
+    // Sumar todas las muertes registradas para este galpón
+    const muertasTotal = mort
+        .filter(m => m.id_galpon?.id_galpon === g.id_galpon)
+        .reduce((a, m) => a + (+m.muertos || 0), 0);
+    const vivas      = Math.max(0, capacidad - muertasTotal);
+    const pctMuertos = capacidad > 0 ? (muertasTotal / capacidad) * 100 : 0;
+    const critico    = pctMuertos >= 5;
+
+    // Alerta si mortalidad >= 5%
+    if (critico) {
+      alertas.push(`⚠️ Mortalidad crítica en <b>${g.nombre}</b>: ${pctMuertos.toFixed(1)}% (${muertasTotal} bajas de ${capacidad.toLocaleString()} aves)`);
+    }
+
+    return { nombre: g.nombre, capacidad, vivas, muertasTotal, pctMuertos, critico };
+  });
+
+  const maxAves = Math.max(...avesData.map(a => a.capacidad), 1);
+  document.getElementById('dash-aves-galpon').innerHTML = avesData.length > 0
+      ? avesData.map(a => `
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
+            <span style="font-weight:600">${a.nombre} ${a.critico ? '🔴' : ''}</span>
+            <span class="mono">${a.vivas.toLocaleString()} / ${a.capacidad.toLocaleString()} aves</span>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:3px">
+            <div style="flex:1;background:var(--bg3);border-radius:4px;height:10px;overflow:hidden">
+              <div style="height:100%;border-radius:4px;background:${a.critico ? 'var(--red)' : a.pctMuertos >= 3 ? '#f59e0b' : 'var(--green,#22c55e)'};width:${Math.max(2, a.vivas/a.capacidad*100)}%"></div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:${a.critico ? 'var(--red)' : 'var(--text3)'}">
+            ${a.muertasTotal} bajas (${a.pctMuertos.toFixed(1)}%)${a.critico ? ' — ⚠ SUPERA EL 5%' : ''}
+          </div>
+        </div>`).join('')
+      : '<div style="color:var(--text3);font-size:12px">Sin galpones registrados</div>';
+
+  // ── Stock de alimento ──────────────────────────────────
+  const maxS = Math.max(...stock.map(s => +s.cantidad), 1);
   document.getElementById('dash-stock-alimento').innerHTML = stock.map(s => `
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
@@ -595,45 +663,20 @@ async function loadDashboard() {
       </div>
       <div class="prog-bar">
         <div class="prog-fill${+s.cantidad < 2000 ? ' danger' : +s.cantidad < 5000 ? ' warn' : ''}"
-             style="width:${(+s.cantidad / maxS * 100)}%"></div>
+             style="width:${Math.max(2, +s.cantidad/maxS*100)}%"></div>
       </div>
     </div>`).join('') || '<div style="color:var(--text3);font-size:12px">Sin datos</div>';
-//stock medi
-  const data1 = await tryGet('/stock-medicamento', 'stockMed');
-  const max  = Math.max(...data1.map(d => +d.cantidadActual), 1);
 
-  document.getElementById('dash-stock-med').innerHTML = data1.map(m => {
-    const cantidad = +m.cantidadActual;
-    const nombre   = m.id_tipo_medicamento?.nombre || `Tipo ${m.id_stock_medicamento}`;
-    const unidad   = m.id_unidad?.nombre || '';
-    return `
-    <div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
-        <span>${nombre}</span>
-        <span class="mono">${cantidad.toLocaleString()} ${unidad}</span>
-      </div>
-      <div class="prog-bar">
-        <div class="prog-fill${cantidad < 5 ? ' danger' : cantidad < 20 ? ' warn' : ''}"
-             style="width:${Math.max(2, (cantidad / max * 100))}%"></div>
-      </div>
-    </div>`;
-  }).join('') || '<div style="color:var(--text3)">Sin datos de stock</div>';
-
-  const low = data.some(m => +m.cantidadActual < 5);
-  // Alertas automáticas
-  const alertas = [];
+  // ── Alertas (stock + mortalidad crítica) ───────────────
   stock.forEach(s => {
     if (+s.cantidad < 2000)
       alertas.push(`Stock crítico: <b>${s.nombre_alimento}</b> — ${s.cantidad} kg`);
   });
-  const medBajo = (await tryGet('/stock-medicamento','stockMed')).filter(m => +m.cantidad_actual < 5);
-  medBajo.forEach(m =>
-      alertas.push(`Medicamento bajo: <b>${m.nombre}</b> — ${m.cantidad_actual} ${m.nombre_unidad || ''}`)
-  );
-  const iconAlerta = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round">
-    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-  </svg>`;
+  stockMed.filter(m => +m.cantidadActual < 5).forEach(m => {
+    const nombre = m.id_tipo_medicamento?.nombre || 'Medicamento';
+    alertas.push(`Medicamento bajo: <b>${nombre}</b> — ${m.cantidadActual}`);
+  });
+
   document.getElementById('dash-alerts').innerHTML = alertas
       .map(a => `<div class="alert alert-warn">${iconAlerta}<div>${a}</div></div>`).join('');
 }
@@ -964,6 +1007,7 @@ async function loadTiposAlimento() {
       <td class="mono">${t.id_tipo_alimento}</td>
       <td>${t.nombre_alimento}</td>
       <td style="color:var(--text3)">${t.descripcion_alimento || '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditTipoalimento(${t.id_tipo_alimento},'${(t.nombre||'').replace(/'/g,"\\'")}')" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('');
 }
 
@@ -1246,7 +1290,7 @@ function calcSugerenciaGalpon() {
     document.getElementById('g-capacidad').placeholder = '—';
   }
 }
-
+//---------galpones
 function checkCapacidadGalpon() {
   const metros = +v('g-metros');
   const capacidad = +v('g-capacidad');
@@ -1368,6 +1412,8 @@ function updateGalponPreview() {
   document.getElementById('c-galpon-preview').textContent =
       nombres.length > 0 ? '✔ ' + nombres.join(', ') : 'Ningún galpón seleccionado';
 }
+
+//tipo de alimento
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');
   const errText = document.getElementById('ta-error-text');
@@ -1410,6 +1456,11 @@ async function postTipoAlimento() {
     errText.textContent = 'No se pudo conectar con el servidor.';
     errBox.style.display = '';
   }
+}
+
+function prepareEditTipoalimento(id, nombre) {
+  openModal('modal-editar-tipos-med');
+  loadEditarTiposAlimento();
 }
 
 async function loadEditarTiposAlimento() {
@@ -1998,9 +2049,10 @@ async function postAdmAlimento() {
     const r = await fetch(S.apiBase + '/admi-alimento', {
       method: 'POST', headers: headers(), body: JSON.stringify(payload)
     });
+    //aleta de error del stock
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      toast('❌', 'Error al registrar', err.message || `Error ${r.status}`, 't-warn');
+      toast('❌', 'Error al registrar la cantidad ingresada es superior al stock actual');
       return;
     }
     toast('✅', 'Alimentación registrada', 'Stock actualizado');
@@ -2128,7 +2180,7 @@ async function postAdmMed() {
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      toast('❌', 'Error al registrar', err.message || `Error ${r.status}`, 't-warn');
+      toast('❌', 'Error al registrar la cantidad ingresada es superior al stock actual');
       return;
     }
     toast('✅', 'Medicación registrada', 'Stock actualizado');
