@@ -26,4 +26,7 @@ public class TipoAlimento {
     @Column(name = "descripcion_alimento", length = 200)
     private String descripcion_alimento;
 
+    @Column(name = "categoria", length = 20)
+    private String categoria;
+
 }

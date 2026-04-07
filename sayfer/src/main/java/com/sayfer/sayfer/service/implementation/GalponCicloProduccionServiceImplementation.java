@@ -3,6 +3,7 @@ package com.sayfer.sayfer.service.implementation;
 import com.sayfer.sayfer.dto.GalponCicloProduccionDTO;
 import com.sayfer.sayfer.entity.GalponCicloProduccion;
 import com.sayfer.sayfer.exeption.NoDataFoundException;
+import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.GalponCicloProduccionMapper;
 import com.sayfer.sayfer.repository.GalponCicloProduccionRepository;
 import com.sayfer.sayfer.service.GalponCicloProduccionService;
@@ -10,6 +11,7 @@ import com.sayfer.sayfer.validator.GalponCicloProduccionValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,11 @@ public class GalponCicloProduccionServiceImplementation implements GalponCicloPr
     @Override
     public GalponCicloProduccionDTO create(GalponCicloProduccionDTO obj) {
         GalponCicloProduccionValidator.validate(obj);
+        Integer idGalpon = obj.getId_galpon() != null ? obj.getId_galpon().getId_galpon() : null;
+        if (idGalpon != null && repository.tienecicloActivo(idGalpon, LocalDate.now(), null)) {
+            throw new ValidateException(
+                "El galpón ya tiene un ciclo de producción en curso. Ciérralo antes de asignar uno nuevo.");
+        }
         GalponCicloProduccion entidad = mapper.toEntity(obj);
         GalponCicloProduccion update = repository.save(entidad);
         return mapper.toDTO(update);
@@ -52,13 +59,18 @@ public class GalponCicloProduccionServiceImplementation implements GalponCicloPr
     @Override
     public GalponCicloProduccionDTO update(Integer id, GalponCicloProduccionDTO obj) {
         GalponCicloProduccionValidator.validate(obj);
-        if (repository.existsById(id)){
-            GalponCicloProduccion entidad = mapper.toEntity(obj);
-            entidad.setId_galpon_ciclo_produccion(id);
-            GalponCicloProduccion update = repository.save(entidad);
-            return mapper.toDTO(update);
+        if (!repository.existsById(id)) {
+            throw new NoDataFoundException("No se puede actualizar: No existe el GalponCicloProduccion con ID" + id);
         }
-        throw new NoDataFoundException("No se puede actualizar: No existe el GalponCicloProduccion con ID" + id);
+        Integer idGalpon = obj.getId_galpon() != null ? obj.getId_galpon().getId_galpon() : null;
+        if (idGalpon != null && repository.tienecicloActivo(idGalpon, LocalDate.now(), id)) {
+            throw new ValidateException(
+                "El galpón ya tiene un ciclo de producción en curso. Ciérralo antes de asignar uno nuevo.");
+        }
+        GalponCicloProduccion entidad = mapper.toEntity(obj);
+        entidad.setId_galpon_ciclo_produccion(id);
+        GalponCicloProduccion update = repository.save(entidad);
+        return mapper.toDTO(update);
     }
 
     @Override

@@ -16,6 +16,7 @@ public class TipoAlimentoMapper extends GenericMapper<TipoAlimento, TipoAlimento
                 .id_tipo_alimento(entity.getId_tipo_alimento())
                 .nombre_alimento(entity.getNombre_alimento())
                 .descripcion_alimento(entity.getDescripcion_alimento())
+                .categoria(entity.getCategoria())
                 .build();
     }
 
@@ -28,6 +29,7 @@ public class TipoAlimentoMapper extends GenericMapper<TipoAlimento, TipoAlimento
                 .id_tipo_alimento(dto.getId_tipo_alimento())
                 .nombre_alimento(dto.getNombre_alimento())
                 .descripcion_alimento(dto.getDescripcion_alimento())
+                .categoria(dto.getCategoria())
                 .build();
     }
 }

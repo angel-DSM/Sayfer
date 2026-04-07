@@ -24,7 +24,7 @@ public class AdmiAlimentoMapper extends GenericMapper<AdmiAlimento, AdmiAlimento
                 .id_galpon(entity.getId_galpon() != null ? entity.getId_galpon().getId_galpon() : null)
                 .nombre_galpon(entity.getId_galpon() != null ? entity.getId_galpon().getNombre() : null)
                 .id_ciclo(entity.getId_ciclo() != null ? entity.getId_ciclo().getId() : null)
-                .nombre_ciclo(entity.getId_ciclo() != null ? entity.getId_ciclo().getNombreCiclo() : null)
+                .nombre_ciclo(entity.getId_ciclo() != null ? entity.getId_ciclo().getNombre_ciclo() : null)
                 .id_usuario(entity.getId_usuario() != null ? entity.getId_usuario().getCedula() : null)
                 .nombre_usuario(entity.getId_usuario() != null ? entity.getId_usuario().getNombre() + " " + entity.getId_usuario().getApellido() : null)
                 .build();

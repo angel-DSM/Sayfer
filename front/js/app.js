@@ -393,37 +393,40 @@ document.querySelectorAll('.modal-overlay').forEach(m =>
 
 // Rellena los <select> de cada modal con datos del caché
 function populateSelects(modalId) {
+  const { galpones: g, ciclos: c, tiposAlimento: ta,
+    tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
   const sel = (id, arr, valKey, lblFn) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.innerHTML = arr.map(x => `<option value="${x[valKey]}">${lblFn(x)}</option>`).join('');
   };
-  // Ciclos: carga galpones en el select y limpia campos al abrir
-  if (modalId === 'modal-ciclo') {
-    sel('c-galpon', g, 'id_galpon', x => x.nombre);
-    document.getElementById('c-nombre').value = '';
-    document.getElementById('c-inicio').value = today();
-    document.getElementById('c-fin').value    = '';
-  }
-  const { galpones: g, ciclos: c, tiposAlimento: ta,
-    tiposMed: tm, tiposMuerte: tmu, usuarios: u, unidades: un } = S;
 
   if (modalId === 'modal-ciclo') {
-    // Renderizar checkboxes en vez de <select multiple>
+    // Galpones que ya tienen ciclo activo (fecha_fin nula o >= hoy)
+    const hoyStr = today();
+    const ocupados = new Set(
+      (S.vinculos || [])
+        .filter(v => !v.fecha_fin || toDateStr(v.fecha_fin) >= hoyStr)
+        .map(v => v.id_galpon?.id_galpon)
+        .filter(Boolean)
+    );
+
     const lista = document.getElementById('c-galpon-lista');
     lista.innerHTML = g.length === 0
         ? '<span style="color:var(--text3);font-size:12px">No hay galpones registrados</span>'
-        : g.map(x => `
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+        : g.map(x => {
+            const bloqueado = ocupados.has(x.id_galpon);
+            return `
+        <label style="display:flex;align-items:center;gap:10px;cursor:${bloqueado?'not-allowed':'pointer'};font-size:14px;color:${bloqueado?'var(--text3)':'var(--text)'}">
           <input type="checkbox" value="${x.id_galpon}"
-            style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:pointer"
+            ${bloqueado ? 'disabled' : ''}
+            style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:${bloqueado?'not-allowed':'pointer'}"
             onchange="updateGalponPreview()">
           <span>${x.nombre}</span>
-          <span style="margin-left:auto;font-size:11px;color:var(--text3)">${x.capacidad?.toLocaleString() || ''} aves</span>
-        </label>`
-        ).join('');
+          <span style="margin-left:auto;font-size:11px;color:var(--text3)">${bloqueado ? '🔒 ciclo activo' : (x.capacidad?.toLocaleString() || '') + ' aves'}</span>
+        </label>`;
+          }).join('');
 
-    // Limpiar campos
     document.getElementById('c-nombre').value = '';
     document.getElementById('c-inicio').value = today();
     document.getElementById('c-fin').value    = '';
@@ -444,7 +447,7 @@ function populateSelects(modalId) {
   if (modalId === 'modal-adm-alimento') {
     sel('aa-tipo',   ta, 'id_tipo_alimento', x => x.nombre_alimento);
     sel('aa-galpon', g,  'id_galpon',        x => x.nombre);
-    sel('aa-ciclo',  c,  'id',               x => x.nombreCiclo || `Ciclo ${x.id}`);
+    sel('aa-ciclo',  c,  'id_ciclo',          x => x.nombre_ciclo || `Ciclo ${x.id_ciclo}`);
     document.getElementById('aa-fecha').value = today();
     document.getElementById('aa-cantidad').value = '';
   }
@@ -456,12 +459,12 @@ function populateSelects(modalId) {
   if (modalId === 'modal-adm-med') {
     sel('am-tipo',    tm, 'id_tipo_medicamento', x => x.nombre);
     sel('am-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
-    sel('am-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
+    sel('am-ciclo',   c,  'id_ciclo',       x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
     document.getElementById('am-fecha').value = today();
   }
   if (modalId === 'modal-mortalidad') {
     sel('mo-galpon',  g,  'id_galpon',           x => `${x.id_galpon} — ${x.nombre}`);
-    sel('mo-ciclo',   c,  'id',            x => x.nombreCiclo||`Ciclo ${x.id_ciclo}`);
+    sel('mo-ciclo',   c,  'id_ciclo',       x => x.nombre_ciclo||`Ciclo ${x.id_ciclo}`);
     sel('mo-tipo-muerte', tmu ,  'id_tipo_muerte',            x => x.nombre||`tipo ${x.id_tipo_muerte}`);
     document.getElementById('mo-fecha').value    = today();
     document.getElementById('mo-cantidad').value = '';
@@ -493,6 +496,47 @@ function populateSelects(modalId) {
 }
 
 function today() { return new Date().toISOString().split('T')[0]; }
+// Renderiza gráfico agrupado por ciclo → barras por tipo
+function renderGraficoCiclos(elId, grupos, opacity, unit = '') {
+  const chartEl = document.getElementById(elId);
+  if (!grupos.length) {
+    chartEl.innerHTML = '<span style="color:var(--text3);font-size:12px">Sin datos</span>';
+    return;
+  }
+  const allVals = grupos.flatMap(g => Object.values(g.byTipo));
+  const maxV = Math.max(...allVals, 1);
+  const BAR_H = 120;
+  chartEl.style.height = 'auto';
+  chartEl.style.alignItems = 'stretch';
+  chartEl.innerHTML = grupos.map(g => {
+    const bars = Object.entries(g.byTipo).map(([tipo, val]) => {
+      const words = tipo.trim().split(/\s+/);
+      const lbl = words.length > 1 ? words.slice(-2).join(' ') : tipo;
+      const opStyle = opacity ? `opacity:${opacity}` : '';
+      const display = val.toLocaleString() + (unit ? ' ' + unit : '');
+      return `<div class="bar-col" title="${tipo}: ${display}" style="min-width:36px">
+        <span class="bar-val" style="font-size:10px">${display}</span>
+        <div class="bar" style="height:${(val/maxV*BAR_H)}px;background:linear-gradient(180deg,var(--accent),var(--accent2));${opStyle}" data-val="${display}"></div>
+        <div class="bar-lbl" style="white-space:normal;line-height:1.2">${lbl}</div>
+      </div>`;
+    }).join('');
+    const words = g.nombre.trim().split(/\s+/);
+    const cicloLbl = words.length > 1 ? words.slice(-2).join(' ') : g.nombre;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-end;gap:6px;min-height:${BAR_H + 40}px">${bars}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);text-align:center;line-height:1.3">
+        ${cicloLbl}<br><span style="font-size:10px;font-weight:400;color:var(--text3)">${g.galpon}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Normaliza fecha de la API: array [2026,4,7] → "2026-04-07", string → string
+function toDateStr(d) {
+  if (!d) return null;
+  if (Array.isArray(d)) return `${d[0]}-${String(d[1]).padStart(2,'0')}-${String(d[2]).padStart(2,'0')}`;
+  return String(d).slice(0, 10);
+}
 
 // Bloquea todo excepto dígitos, punto decimal y teclas de control
 function onlyNumbers(e) {
@@ -591,15 +635,16 @@ function filterTbl(inp, tbodyId) {
 // ─── CARGA INICIAL ────────────────────────────────────────
 async function loadAll() {
   // Carga datos de referencia en paralelo y los guarda en caché
-  [S.galpones, S.ciclos, S.tiposAlimento, S.tiposMed,
+  [S.galpones, S.ciclos, S.vinculos, S.tiposAlimento, S.tiposMed,
     S.tiposMuerte, S.usuarios, S.unidades] = await Promise.all([
-    tryGet('/galpon',        'galpones'),
+    tryGet('/galpon',                    'galpones'),
     tryGet('/ciclo-produccion',          'ciclos'),
-    tryGet('/tipo-alimento',  'tiposAlimento'),
-    tryGet('/tipo-medicamento','tiposMed'),
-    tryGet('/tipo-muerte',    'tiposMuerte'),
-    tryGet('/usuario',        'usuarios'),
-    tryGet('/unidad-medida', 'unidades'),
+    tryGet('/galpon-ciclo-produccion',   'vinculos'),
+    tryGet('/tipo-alimento',             'tiposAlimento'),
+    tryGet('/tipo-medicamento',          'tiposMed'),
+    tryGet('/tipo-muerte',               'tiposMuerte'),
+    tryGet('/usuario',                   'usuarios'),
+    tryGet('/unidad-medida',             'unidades'),
   ]);
   loadDashboard();
 }
@@ -608,55 +653,66 @@ async function loadAll() {
 async function loadDashboard() {
   const now = new Date().toLocaleString('es-CO');
   document.getElementById('dash-updated').textContent = `Última actualización: ${now}`;
+  const btnPdf = document.getElementById('btn-reporte-pdf');
+  if (btnPdf) btnPdf.style.display = isAdmin() ? '' : 'none';
 
   const mort  = await tryGet('/mortalidad', 'mortalidad');
   const hoy   = new Date().toISOString().split('T')[0];
-  const bajasHoy   = mort.filter(m => m.fecha_muerte === hoy).reduce((a,m) => a + m.cantidad_muertos, 0);
-  const bajas7dias = mort.slice(0,7).reduce((a,m) => a + m.cantidad_muertos, 0);
+  const bajasHoy   = mort.filter(m => toDateStr(m.fecha_de_muerte) === hoy).reduce((a,m) => a + (+m.muertos || 0), 0);
+  const bajas7dias = mort.reduce((a,m) => a + (+m.muertos || 0), 0);
 
-  document.getElementById('s-galpones').textContent      = S.galpones.length;
-  document.getElementById('s-ciclos').textContent        = S.ciclos.filter(c => !c.fecha_fin || c.fecha_fin > today()).length;
+  const ciclosActDash = S.ciclos.filter(c => !c.fecha_fin || toDateStr(c.fecha_fin) >= hoy);
+  const totalPollosAct = ciclosActDash.reduce((a, c) => a + (+c.cantidad_pollos || 0), 0);
+  document.getElementById('s-galpones').textContent         = S.galpones.length;
+  document.getElementById('s-ciclos').textContent           = ciclosActDash.length;
+  document.getElementById('s-pollos-activos').textContent   = totalPollosAct ? totalPollosAct.toLocaleString() : '—';
   document.getElementById('s-muertos-hoy').textContent   = bajasHoy;
-  document.getElementById('s-muertos-nota').textContent  = `${bajas7dias} en últimos 7 días`;
+  document.getElementById('s-muertos-nota').textContent  = `${bajas7dias} bajas registradas`;
   document.getElementById('s-tipos-alimento').textContent= S.tiposAlimento.length;
   document.getElementById('s-tipos-med').textContent     = S.tiposMed.length;
 
-  // Tabla de ciclos (dashboard)
-  const vinculosDash = S.vinculos || await tryGet('/galpon-ciclo-produccion', 'vinculos');
+  // Tabla de ciclos (dashboard) — fechas del DTO, galpón desde vinculos
+  const vinculosDash = S.vinculos || [];
   document.getElementById('dash-ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    const vins = vinculosDash.filter(v => v.id_ciclo?.id === c.id || v.id_ciclo?.id_ciclo === c.id);
-    const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
-    const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
-    const fechaInicio = fechasIni[0] || null;
-    const fechaFin    = fechasFin[fechasFin.length - 1] || null;
-    const activo = !fechaFin || fechaFin > today();
+    const fi = toDateStr(c.fecha_inicio);
+    const ff = toDateStr(c.fecha_fin);
+    const activo = !ff || ff >= hoy;
+    const vins = vinculosDash.filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '—';
     return `<tr>
-    <td class="mono">${c.id}</td>
-    <td>${c.nombreCiclo || '—'}</td>
-    <td class="mono">${fechaInicio || '—'}</td>
-    <td class="mono">${fechaFin || '—'}</td>
+    <td class="mono">${c.id_ciclo}</td>
+    <td>${c.nombre_ciclo || '—'}</td>
+    <td>${galpon}</td>
+    <td class="mono">${fi || '—'}</td>
+    <td class="mono">${ff || 'En curso'}</td>
     <td>${activo
         ? '<span class="badge badge-green">● Activo</span>'
         : '<span class="badge badge-gray">Cerrado</span>'}</td>
   </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
 
-  // Gráfica mortalidad últimos 7 días
-  const days = [...Array(7)].map((_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - 6 + i);
-    return d.toISOString().split('T')[0];
+  // Gráfica mortalidad — solo ciclos activos
+  const hoyDash = today();
+  const ciclosActivosDash = new Set(
+    (S.ciclos || []).filter(c => { const f = toDateStr(c.fecha_fin); return !f || f >= hoyDash; })
+                    .map(c => c.id_ciclo)
+  );
+  const byCicloDash = {};
+  mort.filter(m => ciclosActivosDash.has(m.id_ciclo?.id_ciclo)).forEach(m => {
+    const k = m.id_ciclo?.nombre_ciclo || `Ciclo ${m.id_ciclo?.id_ciclo || '?'}`;
+    byCicloDash[k] = (byCicloDash[k] || 0) + (+m.muertos || 0);
   });
-  const byDay = days.map(d => ({
-    label: d.slice(5),
-    val: mort.filter(m => m.fecha_muerte === d).reduce((a,m) => a + m.cantidad_muertos, 0)
-  }));
-  const maxM = Math.max(...byDay.map(d => d.val), 1);
-  document.getElementById('chart-mortalidad').innerHTML = byDay.map(d => `
-    <div class="bar-col">
-      <div class="bar red" style="height:${(d.val/maxM*140)}px" data-val="${d.val} bajas"></div>
-      <div class="bar-lbl">${d.label}</div>
-    </div>`).join('');
-  document.getElementById('chip-total-muertos').textContent = `Total 7d: ${bajas7dias}`;
+  const ciclosDashEntries = Object.entries(byCicloDash);
+  const maxMC = Math.max(...ciclosDashEntries.map(e => e[1]), 1);
+  document.getElementById('chart-mortalidad').innerHTML = ciclosDashEntries.map(([k, val]) => {
+    const words = k.trim().split(/\s+/);
+    const lbl = words.length > 1 ? words.slice(-2).join(' ') : k;
+    return `<div class="bar-col" title="${k}">
+      <div class="bar red" style="height:${(val/maxMC*140)}px" data-val="${val} bajas"></div>
+      <div class="bar-lbl" style="white-space:normal;line-height:1.2">${lbl}</div>
+    </div>`;
+  }).join('') || '<span style="color:var(--text3);font-size:12px">Sin bajas en ciclos activos</span>';
+  document.getElementById('chip-total-muertos').textContent = `Total: ${ciclosDashEntries.reduce((a,[,v]) => a + v, 0)}`;
 
   // Stock alimento
   const stock = await tryGet('/stock-alimento', 'stockAlimento');
@@ -693,23 +749,53 @@ async function loadDashboard() {
     </div>`;
   }).join('') || '<div style="color:var(--text3)">Sin datos de stock</div>';
 
-  const low = data1.some(m => +m.cantidadActual < 5);
   // Alertas automáticas
+  const [ingAlimDash, ingMedDash] = await Promise.all([
+    tryGet('/ing-alimento',    'ingAlimento'),
+    tryGet('/ing-medicamento', 'ingMedicamento'),
+  ]);
+
   const alertas = [];
+  const hoy30 = new Date(); hoy30.setDate(hoy30.getDate() + 30);
+  const hoy30str = hoy30.toISOString().split('T')[0];
+
+  // Stock crítico
   stock.forEach(s => {
-    if (+s.cantidad < 2000)
-      alertas.push(`Stock crítico: <b>${s.nombre_alimento}</b> — ${s.cantidad} kg`);
+    if (+s.cantidad < 100)
+      alertas.push({ tipo: 'warn', msg: `Stock crítico de alimento: <b>${s.nombre_alimento}</b> — ${(+s.cantidad).toLocaleString()} kg` });
   });
-  const medBajo = (await tryGet('/stock-medicamento','stockMed')).filter(m => +m.cantidad_actual < 5);
-  medBajo.forEach(m =>
-      alertas.push(`Medicamento bajo: <b>${m.nombre}</b> — ${m.cantidad_actual} ${m.nombre_unidad || ''}`)
+  data1.filter(m => +m.cantidadActual < 5).forEach(m =>
+    alertas.push({ tipo: 'warn', msg: `Medicamento bajo: <b>${m.id_tipo_medicamento?.nombre || '—'}</b> — ${m.cantidadActual} ${m.id_tipo_medicamento?.unidad || ''}` })
   );
+
+  // Vencimientos próximos (≤ 30 días)
+  ingAlimDash.forEach(r => {
+    const fv = toDateStr(r.fecha_vencimiento);
+    if (!fv || fv > hoy30str) return;
+    const dias = Math.round((new Date(fv) - new Date(hoy)) / 86400000);
+    const nombre = r.id_tipo_alimento?.nombre_alimento || '—';
+    if (dias < 0)
+      alertas.push({ tipo: 'danger', msg: `Alimento vencido: <b>${nombre}</b> — venció el ${fv}` });
+    else
+      alertas.push({ tipo: 'warn', msg: `Alimento por vencer: <b>${nombre}</b> — vence en ${dias} día${dias !== 1 ? 's' : ''} (${fv})` });
+  });
+  ingMedDash.forEach(r => {
+    const fv = toDateStr(r.fecha_vencimiento);
+    if (!fv || fv > hoy30str) return;
+    const dias = Math.round((new Date(fv) - new Date(hoy)) / 86400000);
+    const nombre = r.id_tipo_medicamento?.nombre || '—';
+    if (dias < 0)
+      alertas.push({ tipo: 'danger', msg: `Medicamento vencido: <b>${nombre}</b> — venció el ${fv}` });
+    else
+      alertas.push({ tipo: 'warn', msg: `Medicamento por vencer: <b>${nombre}</b> — vence en ${dias} día${dias !== 1 ? 's' : ''} (${fv})` });
+  });
+
   const iconAlerta = `<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round">
     <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>`;
   document.getElementById('dash-alerts').innerHTML = alertas
-      .map(a => `<div class="alert alert-warn">${iconAlerta}<div>${a}</div></div>`).join('');
+    .map(a => `<div class="alert alert-${a.tipo}">${iconAlerta}<div>${a.msg}</div></div>`).join('');
 }
 
 // ─── GALPONES ─────────────────────────────────────────────
@@ -822,27 +908,19 @@ async function deleteGalpon() {
 // ─── CICLOS DE PRODUCCIÓN ─────────────────────────────────
 async function loadCiclos() {
   // Traer ambas entidades en paralelo
-  [S.ciclos, S.vinculos] = await Promise.all([
+  [S.ciclos, S.vinculos, S.galpones] = await Promise.all([
     tryGet('/ciclo-produccion',        'ciclos'),
-    tryGet('/galpon-ciclo-produccion', 'vinculos')
+    tryGet('/galpon-ciclo-produccion', 'vinculos'),
+    tryGet('/galpon',                  'galpones')
   ]);
 
+  const todayStr = today();
   document.getElementById('ciclos-tbody').innerHTML = S.ciclos.map(c => {
-    // Buscar todos los vínculos de este ciclo
-    const vins = S.vinculos.filter(v => v.id_ciclo?.id === c.id || v.id_ciclo?.id_ciclo === c.id);
+    const fechaInicio = toDateStr(c.fecha_inicio);
+    const fechaFin    = toDateStr(c.fecha_fin);
+    const vins2 = S.vinculos.filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins2.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '—';
 
-    // Galpones asociados (nombres)
-    const galponesNombres = vins.length > 0
-        ? [...new Set(vins.map(v => v.id_galpon?.nombre || `G${v.id_galpon?.id_galpon}`))].join(', ')
-        : '—';
-
-    // Fechas: tomar la menor fecha_inicio y la mayor fecha_fin del conjunto de vínculos
-    const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
-    const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
-    const fechaInicio = fechasIni[0] || null;
-    const fechaFin    = fechasFin[fechasFin.length - 1] || null;
-
-    // Duración en días
     let dias = '—';
     if (fechaInicio) {
       const ini = new Date(fechaInicio);
@@ -850,58 +928,130 @@ async function loadCiclos() {
       dias = Math.round((fin - ini) / (1000 * 60 * 60 * 24));
     }
 
-    const activo = !fechaFin || fechaFin > today();
+    const activo = !fechaFin || fechaFin >= todayStr;
     const estadoBadge = activo
         ? '<span class="badge badge-green">● Activo</span>'
         : '<span class="badge badge-gray">Cerrado</span>';
 
+    const pollos = c.cantidad_pollos != null ? c.cantidad_pollos.toLocaleString() : '—';
     return `<tr>
-      <td class="mono">${c.id}</td>
-      <td>${c.nombreCiclo || '—'}</td>
-      <td>${galponesNombres}</td>
+      <td class="mono">${c.id_ciclo}</td>
+      <td>${c.nombre_ciclo || '—'}</td>
+      <td>${galpon}</td>
       <td class="mono">${fechaInicio || '—'}</td>
       <td class="mono">${fechaFin || 'En curso'}</td>
       <td class="mono">${dias !== '—' ? dias + ' días' : '—'}</td>
+      <td class="mono">${pollos}</td>
       <td>${estadoBadge}</td>
-      ${isAdmin() ? `<td><button class="btn-icon" onclick="prepareEditCiclo(${c.id})" title="Editar">✏️</button></td>` : '<td>—</td>'}
+      ${isAdmin() ? `<td><button class="btn-icon" onclick="prepareEditCiclo(${c.id_ciclo})" title="Editar">✏️</button></td>` : '<td>—</td>'}
     </tr>`;
-  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos registrados</td></tr>';
+
+  // ── Costo acumulado por ciclo activo ──
+  const [admiAlimC, admiMedC, ingAlimC, ingMedC] = await Promise.all([
+    tryGet('/admi-alimento',    'admiAlimento'),
+    tryGet('/admi-medicamento', 'admiMedicamento'),
+    tryGet('/ing-alimento',     'ingAlimento'),
+    tryGet('/ing-medicamento',  'ingMedicamento'),
+  ]);
+
+  // Precio promedio por tipo (valor_total / cantidad)
+  const precioAlim = {};
+  ingAlimC.forEach(r => {
+    const k = r.id_tipo_alimento?.id_tipo_alimento;
+    if (!k) return;
+    if (!precioAlim[k]) precioAlim[k] = { val: 0, cant: 0 };
+    precioAlim[k].val  += +r.valor_total || 0;
+    precioAlim[k].cant += +r.cantidad    || 0;
+  });
+  const precioMed = {};
+  ingMedC.forEach(r => {
+    const k = r.id_tipo_medicamento?.id_tipo_medicamento;
+    if (!k) return;
+    if (!precioMed[k]) precioMed[k] = { val: 0, cant: 0 };
+    precioMed[k].val  += +r.valor_total || 0;
+    precioMed[k].cant += +r.cantidad    || 0;
+  });
+
+  const ciclosActivos = S.ciclos.filter(c => { const f = toDateStr(c.fecha_fin); return !f || f >= todayStr; });
+  document.getElementById('costos-ciclos-tbody').innerHTML = ciclosActivos.map(c => {
+    const vins   = S.vinculos.filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '—';
+    const invPollos = (+c.cantidad_pollos || 0) * (+c.valor_pollo || 0);
+
+    const costoAlim = admiAlimC
+      .filter(r => r.id_ciclo?.id_ciclo === c.id_ciclo)
+      .reduce((a, r) => {
+        const k   = r.id_tipo_alimento?.id_tipo_alimento;
+        const avg = k && precioAlim[k]?.cant > 0 ? precioAlim[k].val / precioAlim[k].cant : 0;
+        return a + (+r.cantidad_utilizada || 0) * avg;
+      }, 0);
+
+    const costoMed = admiMedC
+      .filter(r => r.id_ciclo?.id_ciclo === c.id_ciclo)
+      .reduce((a, r) => {
+        const k   = r.id_tipo_medicamento?.id_tipo_medicamento;
+        const avg = k && precioMed[k]?.cant > 0 ? precioMed[k].val / precioMed[k].cant : 0;
+        return a + (+r.cantidad_utilizada_medi || 0) * avg;
+      }, 0);
+
+    const total = invPollos + costoAlim + costoMed;
+    const fmtP  = n => '$' + Math.round(n).toLocaleString('es-CO');
+    return `<tr>
+      <td>${c.nombre_ciclo || `Ciclo ${c.id_ciclo}`}</td>
+      <td>${galpon}</td>
+      <td class="mono">${invPollos ? fmtP(invPollos) : '—'}</td>
+      <td class="mono">${costoAlim ? fmtP(costoAlim) : '—'}</td>
+      <td class="mono">${costoMed  ? fmtP(costoMed)  : '—'}</td>
+      <td class="mono" style="font-weight:700">${total ? fmtP(total) : '—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Sin ciclos activos</td></tr>';
 }
 
 // ─── EDITAR / ELIMINAR CICLO ──────────────────────────────
 async function prepareEditCiclo(id) {
-  const ciclo = S.ciclos.find(c => c.id === id);
+  const ciclo = S.ciclos.find(c => c.id_ciclo === id);
   if (!ciclo) { toast('❌', 'Ciclo no encontrado', '', 't-warn'); return; }
 
-  document.getElementById('ec-id').value     = ciclo.id;
-  document.getElementById('ec-nombre').value = ciclo.nombreCiclo || '';
+  document.getElementById('ec-id').value          = ciclo.id_ciclo;
+  document.getElementById('ec-nombre').value      = ciclo.nombre_ciclo || '';
+  document.getElementById('ec-inicio').value      = toDateStr(ciclo.fecha_inicio) || '';
+  document.getElementById('ec-fin').value         = toDateStr(ciclo.fecha_fin)    || '';
+  document.getElementById('ec-pollos').value      = ciclo.cantidad_pollos != null ? ciclo.cantidad_pollos : '';
+  document.getElementById('ec-valor-pollo').value = ciclo.valor_pollo    != null ? ciclo.valor_pollo    : '';
 
-  // Buscar los vínculos de este ciclo para obtener fechas y galpones actuales
+  // Buscar los vínculos de este ciclo para los galpones actuales
   const vins = (S.vinculos || []).filter(v =>
-      v.id_ciclo?.id === ciclo.id || v.id_ciclo?.id_ciclo === ciclo.id
+      v.id_ciclo?.id_ciclo === ciclo.id_ciclo
   );
 
-  // Fechas: tomar la menor inicio y mayor fin del conjunto
-  const fechasIni = vins.map(v => v.fecha_inicio).filter(Boolean).sort();
-  const fechasFin = vins.map(v => v.fecha_fin).filter(Boolean).sort();
-  document.getElementById('ec-inicio').value = fechasIni[0] || '';
-  document.getElementById('ec-fin').value    = fechasFin[fechasFin.length - 1] || '';
-
-  // ID de galpones ya vinculados
+  // ID de galpones ya vinculados a ESTE ciclo
   const galponesActuales = vins.map(v => v.id_galpon?.id_galpon).filter(Boolean);
 
-  // Renderizar checkboxes marcando los ya vinculados
+  // Galpones ocupados por OTRO ciclo activo
+  const hoyStr2 = today();
+  const ocupadosPorOtro = new Set(
+    (S.vinculos || [])
+      .filter(v => v.id_ciclo?.id_ciclo !== ciclo.id_ciclo &&
+                   (!v.fecha_fin || toDateStr(v.fecha_fin) >= hoyStr2))
+      .map(v => v.id_galpon?.id_galpon)
+      .filter(Boolean)
+  );
+
   const lista = document.getElementById('ec-galpon-lista');
-  lista.innerHTML = S.galpones.map(g => `
-    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;color:var(--text)">
+  lista.innerHTML = S.galpones.map(g => {
+    const bloqueado = ocupadosPorOtro.has(g.id_galpon);
+    return `
+    <label style="display:flex;align-items:center;gap:10px;cursor:${bloqueado?'not-allowed':'pointer'};font-size:14px;color:${bloqueado?'var(--text3)':'var(--text)'}">
       <input type="checkbox" value="${g.id_galpon}"
         ${galponesActuales.includes(g.id_galpon) ? 'checked' : ''}
-        style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:pointer"
+        ${bloqueado ? 'disabled' : ''}
+        style="width:16px;height:16px;accent-color:var(--green,#22c55e);cursor:${bloqueado?'not-allowed':'pointer'}"
         onchange="updateEcGalponPreview()">
       <span>${g.nombre}</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--text3)">${g.capacidad?.toLocaleString() || ''} aves</span>
-    </label>`
-  ).join('');
+      <span style="margin-left:auto;font-size:11px;color:var(--text3)">${bloqueado ? '🔒 ciclo activo' : (g.capacidad?.toLocaleString() || '') + ' aves'}</span>
+    </label>`;
+  }).join('');
 
   updateEcGalponPreview();
 
@@ -952,7 +1102,13 @@ async function updateCiclo() {
     const rCiclo = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
       method: 'PUT',
       headers: headers(),
-      body: JSON.stringify({ nombreCiclo: nombre })
+      body: JSON.stringify({
+        nombre_ciclo:   nombre,
+        fecha_inicio:   inicio,
+        fecha_fin:      fin,
+        cantidad_pollos: v('ec-pollos') ? +v('ec-pollos') : null,
+        valor_pollo:    v('ec-valor-pollo') ? +v('ec-valor-pollo') : null,
+      })
     });
     if (!rCiclo.ok) {
       const err = await rCiclo.json().catch(() => ({}));
@@ -961,7 +1117,7 @@ async function updateCiclo() {
 
     // 2. Borrar todos los vínculos actuales de este ciclo
     const vinculosActuales = (S.vinculos || []).filter(v =>
-        v.id_ciclo?.id === +id || v.id_ciclo?.id_ciclo === +id
+        v.id_ciclo?.id_ciclo === +id
     );
     for (const vin of vinculosActuales) {
       await fetch(S.apiBase + '/galpon-ciclo-produccion/' + vin.id_galpon_ciclo_produccion, {
@@ -979,7 +1135,7 @@ async function updateCiclo() {
           fecha_inicio: inicio,
           fecha_fin:    fin,
           id_galpon:    { id_galpon: idGalpon },
-          id_ciclo:     { id: +id }
+          id_ciclo:     { id_ciclo: +id }
         })
       });
       if (!rVin.ok) {
@@ -1005,7 +1161,7 @@ async function deleteCiclo() {
   try {
     // 1. Borrar primero todos los vínculos galpon-ciclo
     const vinculosActuales = (S.vinculos || []).filter(v =>
-        v.id_ciclo?.id === +id || v.id_ciclo?.id_ciclo === +id
+        v.id_ciclo?.id_ciclo === +id
     );
     for (const vin of vinculosActuales) {
       await fetch(S.apiBase + '/galpon-ciclo-produccion/' + vin.id_galpon_ciclo_produccion, {
@@ -1033,12 +1189,20 @@ async function deleteCiclo() {
 // ─── ALIMENTO ─────────────────────────────────────────────
 async function loadTiposAlimento() {
   S.tiposAlimento = await tryGet('/tipo-alimento', 'tiposAlimento');
-  document.getElementById('tipos-alimento-tbody').innerHTML = S.tiposAlimento.map(t => `
-    <tr>
+  const admin = isAdmin();
+  const CAT_LABEL = { preiniciador: 'Preiniciador', iniciador: 'Iniciador', engorde: 'Engorde', finalizacion: 'Finalización' };
+  document.getElementById('tipos-alimento-tbody').innerHTML = S.tiposAlimento.map(t => {
+    const btn = admin
+      ? '<button class="btn-icon" onclick="prepareEditTipoAlimento(' + t.id_tipo_alimento + ')" title="Editar">✏️</button>'
+      : '—';
+    return `<tr>
       <td class="mono">${t.id_tipo_alimento}</td>
       <td>${t.nombre_alimento}</td>
+      <td>${t.categoria ? '<span class="badge badge-gray">' + (CAT_LABEL[t.categoria] || t.categoria) + '</span>' : '—'}</td>
       <td style="color:var(--text3)">${t.descripcion_alimento || '—'}</td>
-    </tr>`).join('');
+      <td>${btn}</td>
+    </tr>`;
+  }).join('');
 }
 
 async function refreshStock(type) {
@@ -1074,17 +1238,21 @@ async function loadStockAlimento() {
 
 async function loadIngAlimento() {
   const data = await tryGet('/ing-alimento', 'ingAlimento');
-  document.getElementById('ing-alimento-tbody').innerHTML = data.map(r => `
-    <tr>
+  const admin = isAdmin();
+  document.getElementById('ing-alimento-tbody').innerHTML = data.map(r => {
+    const btnEdit = admin
+      ? '<button class="btn-icon" onclick="prepareEditIngAlimento(' + r.id_IngAlimento + ')" title="Editar">✏️</button>'
+      : '—';
+    return `<tr>
       <td class="mono">${r.id_IngAlimento}</td>
       <td>${r.id_tipo_alimento?.nombre_alimento || '—'}</td>
       <td class="mono">${(+r.cantidad).toLocaleString()}</td>
-      <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.fecha_vencimiento}</td>
-      <td class="mono">${r.valor_total != null ? '$' + r.valor_total.toLocaleString() : '—'}</td>
-      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngAlimento(${r.id_IngAlimento})" title="Editar">✏️</button>` : '—'}</td>
-    </tr>`).join('') ||
-      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      <td class="mono">${toDateStr(r.fecha_ingreso) || '—'}</td>
+      <td class="mono">${toDateStr(r.fecha_vencimiento) || '—'}</td>
+      <td class="mono">${r.valor_total != null ? '$' + (+r.valor_total).toLocaleString() : '—'}</td>
+      <td>${btnEdit}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── MEDICAMENTOS ─────────────────────────────────────────
@@ -1127,17 +1295,21 @@ async function loadStockMed() {
 
 async function loadIngMed() {
   const data = await tryGet('/ing-medicamento', 'ingMed');
-  document.getElementById('ing-med-tbody').innerHTML = data.map(r => `
-    <tr>
+  const admin = isAdmin();
+  document.getElementById('ing-med-tbody').innerHTML = data.map(r => {
+    const btnEdit = admin
+      ? '<button class="btn-icon" onclick="prepareEditIngMed(' + r.ing_medicamento + ')" title="Editar">✏️</button>'
+      : '—';
+    return `<tr>
       <td class="mono">${r.ing_medicamento}</td>
       <td>${r.id_tipo_medicamento?.nombre || '—'}</td>
       <td class="mono">${+r.cantidad}</td>
-      <td class="mono">${r.fecha_ingreso}</td>
-      <td class="mono">${r.fecha_vencimiento}</td>
+      <td class="mono">${toDateStr(r.fecha_ingreso) || '—'}</td>
+      <td class="mono">${toDateStr(r.fecha_vencimiento) || '—'}</td>
       <td class="mono">${r.valor_total != null ? '$' + (+r.valor_total).toLocaleString() : '—'}</td>
-      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditIngMed(${r.ing_medicamento})" title="Editar">✏️</button>` : '—'}</td>
-    </tr>`).join('') ||
-      '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+      <td>${btnEdit}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
 }
 
 // ─── MORTALIDAD ───────────────────────────────────────────
@@ -1155,15 +1327,42 @@ async function loadTiposMuerte() {
 async function loadMortalidad() {
   const data = await tryGet('/mortalidad', 'mortalidad');
   const hoy  = new Date().toISOString().split('T')[0];
+  if (!S.ciclos) S.ciclos = await tryGet('/ciclo-produccion', 'ciclos');
 
-  document.getElementById('m-total').textContent    = data.reduce((a, m) => a + (+m.muertos || 0), 0);
+  const totalBajas = data.reduce((a, m) => a + (+m.muertos || 0), 0);
+  const totalPollosSistema = S.ciclos.reduce((a, c) => a + (+c.cantidad_pollos || 0), 0);
+  const tasaGlobal = totalPollosSistema > 0 ? (totalBajas / totalPollosSistema * 100).toFixed(1) : null;
+
+  document.getElementById('m-total').textContent    = totalBajas;
   document.getElementById('m-hoy').textContent      = data.filter(m => m.fecha_de_muerte === hoy).reduce((a, m) => a + (+m.muertos || 0), 0);
   document.getElementById('m-galpones').textContent = [...new Set(data.map(m => m.id_galpon?.id_galpon).filter(Boolean))].length;
+  document.getElementById('m-tasa').textContent     = tasaGlobal != null ? tasaGlobal + '%' : '—';
+
+  // Tasa por ciclo
+  const bajasPorCiclo = {};
+  data.forEach(m => {
+    const cid = m.id_ciclo?.id_ciclo;
+    if (!cid) return;
+    if (!bajasPorCiclo[cid]) bajasPorCiclo[cid] = { nombre: m.id_ciclo?.nombre_ciclo || `Ciclo ${cid}`, bajas: 0 };
+    bajasPorCiclo[cid].bajas += +m.muertos || 0;
+  });
+  document.getElementById('tasa-ciclo-tbody').innerHTML = S.ciclos.map(c => {
+    const pollos = +c.cantidad_pollos || 0;
+    const bajas  = bajasPorCiclo[c.id_ciclo]?.bajas || 0;
+    const tasa   = pollos > 0 ? (bajas / pollos * 100).toFixed(1) : null;
+    const color  = tasa == null ? 'var(--text3)' : tasa >= 6 ? 'var(--red)' : tasa >= 3 ? '#f59e0b' : 'var(--green,#22c55e)';
+    return `<tr>
+      <td>${c.nombre_ciclo || `Ciclo ${c.id_ciclo}`}</td>
+      <td class="mono">${pollos ? pollos.toLocaleString() : '—'}</td>
+      <td class="mono" style="color:var(--red)">${bajas.toLocaleString()}</td>
+      <td class="mono" style="color:${color};font-weight:700">${tasa != null ? tasa + '%' : '—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin ciclos</td></tr>';
 
   document.getElementById('mortalidad-tbody').innerHTML = data.map(m => `
     <tr>
       <td class="mono">${m.id_Mortalidad}</td>
-      <td>${m.id_ciclo?.nombreCiclo || '—'}</td>
+      <td>${m.id_ciclo?.nombre_ciclo || '—'}</td>
       <td>${m.id_galpon?.nombre     || '—'}</td>
       <td>${m.id_tipo_muerte?.nombre || '—'}</td>
       <td class="mono">${m.fecha_de_muerte}</td>
@@ -1183,11 +1382,144 @@ async function loadMortalidad() {
   const maxC    = Math.max(...entries.map(e => e[1]), 1);
   document.getElementById('chart-causas').innerHTML = entries.map(([k, val]) => `
   <div class="bar-col">
-    <span class="bar-val">${val}</span> 
-    
+    <span class="bar-val">${val}</span>
     <div class="bar red" style="height:${(val / maxC * 110)}px" data-val="${val}"></div>
     <div class="bar-lbl">${k.split(' ')[0]}</div>
-  </div>`).join('');
+  </div>`).join('') || '<span style="color:var(--text3);font-size:12px">Sin datos</span>';
+
+  // Gráfica por mes
+  const byMes = {};
+  data.forEach(m => {
+    const d = toDateStr(m.fecha_de_muerte);
+    if (!d) return;
+    const k = d.slice(0, 7); // "YYYY-MM"
+    byMes[k] = (byMes[k] || 0) + (+m.muertos || 0);
+  });
+  const mesSorted = Object.entries(byMes).sort(([a], [b]) => a.localeCompare(b));
+  const maxM = Math.max(...mesSorted.map(e => e[1]), 1);
+  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('chart-mes').innerHTML = mesSorted.map(([k, val]) => {
+    const [y, mo] = k.split('-');
+    const lbl = MESES[+mo - 1] + ' ' + y.slice(2);
+    return `<div class="bar-col">
+      <span class="bar-val">${val}</span>
+      <div class="bar red" style="height:${(val / maxM * 110)}px" data-val="${val}"></div>
+      <div class="bar-lbl">${lbl}</div>
+    </div>`;
+  }).join('') || '<span style="color:var(--text3);font-size:12px">Sin datos</span>';
+
+  // Gráfica por ciclo de producción
+  const byCiclo = {};
+  data.forEach(m => {
+    const k = m.id_ciclo?.nombre_ciclo || `Ciclo ${m.id_ciclo?.id_ciclo || '?'}`;
+    byCiclo[k] = (byCiclo[k] || 0) + (+m.muertos || 0);
+  });
+  const cicloEntries = Object.entries(byCiclo);
+  const maxCi = Math.max(...cicloEntries.map(e => e[1]), 1);
+  document.getElementById('chart-ciclo').innerHTML = cicloEntries.map(([k, val]) => {
+    const words = k.trim().split(/\s+/);
+    const lbl = words.length > 1 ? words.slice(-2).join(' ') : k;
+    return `<div class="bar-col" title="${k}">
+      <span class="bar-val">${val}</span>
+      <div class="bar red" style="height:${(val / maxCi * 110)}px" data-val="${val}"></div>
+      <div class="bar-lbl" style="white-space:normal;line-height:1.2">${lbl}</div>
+    </div>`;
+  }).join('') || '<span style="color:var(--text3);font-size:12px">Sin datos</span>';
+
+  // Gráfico agrupado: por ciclo activo → una barra por tipo de muerte
+  const hoyStr = today();
+  const ciclosActivos = (S.ciclos || []).filter(c => {
+    const fin = toDateStr(c.fecha_fin);
+    return !fin || fin >= hoyStr;
+  });
+  const grupos = ciclosActivos.map(c => {
+    const vins   = (S.vinculos || []).filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '?';
+    const registros = data.filter(m => m.id_ciclo?.id_ciclo === c.id_ciclo);
+    const byTipo = {};
+    registros.forEach(m => {
+      const t = m.id_tipo_muerte?.nombre || 'Sin tipo';
+      byTipo[t] = (byTipo[t] || 0) + (+m.muertos || 0);
+    });
+    return { nombre: c.nombre_ciclo || `Ciclo ${c.id_ciclo}`, galpon, byTipo };
+  }).filter(g => Object.keys(g.byTipo).length > 0);
+
+  const chartEl = document.getElementById('chart-mort-ciclo-agrupado');
+  if (!grupos.length) {
+    chartEl.innerHTML = '<span style="color:var(--text3);font-size:12px">Sin datos en ciclos activos</span>';
+  } else {
+    const allVals = grupos.flatMap(g => Object.values(g.byTipo));
+    const maxV = Math.max(...allVals, 1);
+    const BAR_H = 120;
+    chartEl.style.height = 'auto';
+    chartEl.style.alignItems = 'stretch';
+    chartEl.innerHTML = grupos.map(g => {
+      const bars = Object.entries(g.byTipo).map(([tipo, val]) => {
+        const words = tipo.trim().split(/\s+/);
+        const lbl = words.length > 1 ? words.slice(-2).join(' ') : tipo;
+        return `<div class="bar-col" title="${tipo}: ${val.toLocaleString()} bajas" style="min-width:36px">
+          <span class="bar-val" style="font-size:10px">${val.toLocaleString()} bajas</span>
+          <div class="bar red" style="height:${(val/maxV*BAR_H)}px" data-val="${val.toLocaleString()} bajas"></div>
+          <div class="bar-lbl" style="white-space:normal;line-height:1.2">${lbl}</div>
+        </div>`;
+      }).join('');
+      const words = g.nombre.trim().split(/\s+/);
+      const cicloLbl = words.length > 1 ? words.slice(-2).join(' ') : g.nombre;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--border)">
+        <div style="display:flex;align-items:flex-end;gap:6px;min-height:${BAR_H + 40}px">${bars}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-align:center;white-space:normal;line-height:1.3">
+          ${cicloLbl}<br><span style="font-size:10px;font-weight:400;color:var(--text3)">${g.galpon}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Gráfico agrupado: ciclos FINALIZADOS → una barra por tipo de muerte
+  const ciclosFinalizados = (S.ciclos || []).filter(c => {
+    const fin = toDateStr(c.fecha_fin);
+    return fin && fin < hoyStr;
+  });
+  const gruposFin = ciclosFinalizados.map(c => {
+    const vins   = (S.vinculos || []).filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '?';
+    const registros = data.filter(m => m.id_ciclo?.id_ciclo === c.id_ciclo);
+    const byTipo = {};
+    registros.forEach(m => {
+      const t = m.id_tipo_muerte?.nombre || 'Sin tipo';
+      byTipo[t] = (byTipo[t] || 0) + (+m.muertos || 0);
+    });
+    return { nombre: c.nombre_ciclo || `Ciclo ${c.id_ciclo}`, galpon, byTipo };
+  }).filter(g => Object.keys(g.byTipo).length > 0);
+
+  const chartElFin = document.getElementById('chart-mort-ciclo-fin');
+  if (!gruposFin.length) {
+    chartElFin.innerHTML = '<span style="color:var(--text3);font-size:12px">Sin datos en ciclos finalizados</span>';
+  } else {
+    const allValsFin = gruposFin.flatMap(g => Object.values(g.byTipo));
+    const maxVF = Math.max(...allValsFin, 1);
+    const BAR_H = 120;
+    chartElFin.style.height = 'auto';
+    chartElFin.style.alignItems = 'stretch';
+    chartElFin.innerHTML = gruposFin.map(g => {
+      const bars = Object.entries(g.byTipo).map(([tipo, val]) => {
+        const words = tipo.trim().split(/\s+/);
+        const lbl = words.length > 1 ? words.slice(-2).join(' ') : tipo;
+        return `<div class="bar-col" title="${tipo}: ${val.toLocaleString()} bajas" style="min-width:36px">
+          <span class="bar-val" style="font-size:10px">${val.toLocaleString()} bajas</span>
+          <div class="bar red" style="height:${(val/maxVF*BAR_H)}px;opacity:0.6" data-val="${val.toLocaleString()} bajas"></div>
+          <div class="bar-lbl" style="white-space:normal;line-height:1.2">${lbl}</div>
+        </div>`;
+      }).join('');
+      const words = g.nombre.trim().split(/\s+/);
+      const cicloLbl = words.length > 1 ? words.slice(-2).join(' ') : g.nombre;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--border)">
+        <div style="display:flex;align-items:flex-end;gap:6px;min-height:${BAR_H + 40}px">${bars}</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-align:center;white-space:normal;line-height:1.3">
+          ${cicloLbl}<br><span style="font-size:10px;font-weight:400;color:var(--text3)">${g.galpon}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 // ─── ADMINISTRACIÓN DE ALIMENTO ───────────────────────────
 async function loadAdmAlimento() {
@@ -1204,6 +1536,24 @@ async function loadAdmAlimento() {
       <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditAdmAlimento(${r.id_admi_alimento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
       '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+
+  // Gráficos agrupados por ciclo: activos y finalizados
+  const hoyStr = today();
+  const buildGrupos = (ciclos) => ciclos.map(c => {
+    const vins   = (S.vinculos || []).filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '?';
+    const byTipo = {};
+    data.filter(r => r.id_ciclo === c.id_ciclo).forEach(r => {
+      const t = r.nombre_alimento || 'Sin tipo';
+      byTipo[t] = (byTipo[t] || 0) + (+r.cantidad_utilizada || 0);
+    });
+    return { nombre: c.nombre_ciclo || `Ciclo ${c.id_ciclo}`, galpon, byTipo };
+  }).filter(g => Object.keys(g.byTipo).length > 0);
+
+  renderGraficoCiclos('chart-consumo-ciclo',
+    buildGrupos((S.ciclos || []).filter(c => { const f = toDateStr(c.fecha_fin); return !f || f >= hoyStr; })), null, 'kg');
+  renderGraficoCiclos('chart-consumo-ciclo-fin',
+    buildGrupos((S.ciclos || []).filter(c => { const f = toDateStr(c.fecha_fin); return f && f < hoyStr; })), '0.6', 'kg');
 }
 
 // ─── ADMINISTRACIÓN DE MEDICAMENTOS ──────────────────────
@@ -1221,6 +1571,24 @@ async function loadAdmMed() {
       <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditAdmMed(${r.id_admi_medicamento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('') ||
       '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin registros</td></tr>';
+
+  // Gráficos agrupados por ciclo: activos y finalizados
+  const hoyStrM = today();
+  const buildGruposMed = (ciclos) => ciclos.map(c => {
+    const vins   = (S.vinculos || []).filter(v => v.id_ciclo?.id_ciclo === c.id_ciclo);
+    const galpon = [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '?';
+    const byTipo = {};
+    data.filter(r => r.id_ciclo === c.id_ciclo).forEach(r => {
+      const t = r.nombre_med || 'Sin tipo';
+      byTipo[t] = (byTipo[t] || 0) + (+r.cantidad_utilizada || 0);
+    });
+    return { nombre: c.nombre_ciclo || `Ciclo ${c.id_ciclo}`, galpon, byTipo };
+  }).filter(g => Object.keys(g.byTipo).length > 0);
+
+  renderGraficoCiclos('chart-consumo-med',
+    buildGruposMed((S.ciclos || []).filter(c => { const f = toDateStr(c.fecha_fin); return !f || f >= hoyStrM; })), null, 'und');
+  renderGraficoCiclos('chart-consumo-med-fin',
+    buildGruposMed((S.ciclos || []).filter(c => { const f = toDateStr(c.fecha_fin); return f && f < hoyStrM; })), '0.6', 'und');
 }
 
 // ─── USUARIOS ─────────────────────────────────────────────
@@ -1394,7 +1762,13 @@ async function postCiclo() {
     const resCiclo = await fetch(S.apiBase + '/ciclo-produccion', {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ nombreCiclo: nombre })
+      body: JSON.stringify({
+        nombre_ciclo:    nombre,
+        fecha_inicio:    inicio,
+        fecha_fin:       fin,
+        cantidad_pollos: v('c-pollos') ? +v('c-pollos') : null,
+        valor_pollo:     v('c-valor-pollo') ? +v('c-valor-pollo') : null,
+      })
     });
 
     if (!resCiclo.ok) {
@@ -1403,8 +1777,7 @@ async function postCiclo() {
     }
 
     const cicloData = await resCiclo.json();
-    // El DTO devuelve el campo como "id" (no id_ciclo)
-    const idCiclo = cicloData.data?.id;
+    const idCiclo = cicloData.data?.id_ciclo;
 
     if (!idCiclo) {
       throw new Error('El servidor no devolvió el ID del ciclo creado');
@@ -1419,7 +1792,7 @@ async function postCiclo() {
           fecha_inicio: inicio,
           fecha_fin:    fin,
           id_galpon:    { id_galpon: idGalpon },
-          id_ciclo:     { id: idCiclo }
+          id_ciclo:     { id_ciclo: idCiclo }
         })
       });
 
@@ -1453,42 +1826,6 @@ async function fillGalponSelect(selectId, selectedId = null) {
       ).join('');
 }
 
-// Abre el modal de edición con los datos del ciclo (solo ADMIN)
-async function prepareEditCiclo(id) {
-  const ciclo = S.ciclos.find(c => c.id_ciclo === id);
-  if (!ciclo) return;
-  document.getElementById('ec-id').value     = ciclo.id_ciclo;
-  document.getElementById('ec-nombre').value = ciclo.nombre_ciclo || '';
-  document.getElementById('ec-inicio').value = ciclo.fecha_inicio || '';
-  document.getElementById('ec-fin').value    = ciclo.fecha_fin    || '';
-  await fillGalponSelect('ec-galpon', ciclo.id_galpon?.id_galpon);
-  openModal('modal-editar-ciclo');
-}
-
-// Envía PUT con header X-User-Rol para protección de rol
-async function updateCiclo() {
-  const id = +document.getElementById('ec-id').value;
-  const payload = {
-    nombre_ciclo: document.getElementById('ec-nombre').value,
-    fecha_inicio: document.getElementById('ec-inicio').value,
-    fecha_fin:    document.getElementById('ec-fin').value || null,
-    id_galpon:    { id_galpon: +document.getElementById('ec-galpon').value }
-  };
-  try {
-    const r = await fetch(S.apiBase + '/ciclo-produccion/' + id, {
-      method: 'PUT',
-      headers: { ...headers(), 'X-User-Rol': S.user?.rol || '' },
-      body: JSON.stringify(payload)
-    });
-    const res = await r.json();
-    if (!r.ok) { toast('❌', 'Error', res.message || 'No se pudo actualizar'); return; }
-    toast('✅', 'Ciclo actualizado', payload.nombre_ciclo);
-    closeModal('modal-editar-ciclo');
-    loadCiclos();
-  } catch (err) {
-    toast('❌', 'Error de red', err.message);
-  }
-}
 async function postTipoAlimento() {
   const errBox  = document.getElementById('ta-error-msg');
   const errText = document.getElementById('ta-error-text');
@@ -1515,7 +1852,7 @@ async function postTipoAlimento() {
     const r = await fetch(S.apiBase + '/tipo-alimento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre_alimento: nombre, descripcion_alimento: v('ta-desc') })
+      body: JSON.stringify({ nombre_alimento: nombre, categoria: v('ta-categoria') || null, descripcion_alimento: v('ta-desc') })
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
@@ -1570,6 +1907,50 @@ async function deleteTipoAlimento(id, nombre) {
     await loadEditarTiposAlimento();
   } catch (err) {
     toast('❌', 'Error al eliminar', 'No se pudo conectar con el servidor.', 't-error');
+  }
+}
+
+function prepareEditTipoAlimento(id) {
+  const t = S.tiposAlimento.find(x => x.id_tipo_alimento === id);
+  if (!t) return;
+  document.getElementById('eta-id').value = t.id_tipo_alimento;
+  document.getElementById('eta-nombre').value = t.nombre_alimento;
+  document.getElementById('eta-categoria').value = t.categoria || '';
+  document.getElementById('eta-desc').value = t.descripcion_alimento || '';
+  document.getElementById('eta-error-msg').style.display = 'none';
+  openModal('modal-editar-tipo-alimento');
+}
+
+async function updateTipoAlimento() {
+  const errBox  = document.getElementById('eta-error-msg');
+  const errText = document.getElementById('eta-error-text');
+  errBox.style.display = 'none';
+  const id     = +document.getElementById('eta-id').value;
+  const nombre = document.getElementById('eta-nombre').value.trim();
+  if (!nombre) {
+    errText.textContent = 'El nombre del tipo de alimento es obligatorio.';
+    errBox.style.display = '';
+    return;
+  }
+  try {
+    const r = await fetch(S.apiBase + '/tipo-alimento/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre_alimento: nombre, categoria: document.getElementById('eta-categoria').value || null, descripcion_alimento: document.getElementById('eta-desc').value })
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      errText.textContent = err.message || 'Error al actualizar el tipo de alimento.';
+      errBox.style.display = '';
+      return;
+    }
+    toast('✅', 'Tipo de alimento actualizado');
+    closeModal('modal-editar-tipo-alimento');
+    loadTiposAlimento();
+    loadStockAlimento();
+  } catch {
+    errText.textContent = 'No se pudo conectar con el servidor.';
+    errBox.style.display = '';
   }
 }
 
@@ -1660,7 +2041,7 @@ async function prepareEditIngAlimento(id) {
     document.getElementById('eia-tipo-display').value = ingreso.id_tipo_alimento?.nombre_alimento || 'Desconocido';
     document.getElementById('eia-cantidad').value = ingreso.cantidad;
     document.getElementById('eia-fecha').value = ingreso.fecha_ingreso;
-    document.getElementById('eia-fechav').value = ingreso.fecha_vencimiento;
+    document.getElementById('eia-fechav').value = toDateStr(ingreso.fecha_vencimiento) || '';
     document.getElementById('eia-vtotal').value = ingreso.valor_total || '';
     
     // Limpiar mensajes de error
@@ -1964,7 +2345,7 @@ async function prepareEditIngMed(id) {
     document.getElementById('eim-tipo-display').value = ingreso.id_tipo_medicamento?.nombre || 'Desconocido';
     document.getElementById('eim-cantidad').value = ingreso.cantidad;
     document.getElementById('eim-fecha').value = ingreso.fecha_ingreso;
-    document.getElementById('eim-fechav').value = ingreso.fecha_vencimiento;
+    document.getElementById('eim-fechav').value = toDateStr(ingreso.fecha_vencimiento) || '';
     document.getElementById('eim-vtotal').value = ingreso.valor_total || '';
     const errBox = document.getElementById('eim-error-msg');
     if (errBox) errBox.style.display = 'none';
@@ -2052,7 +2433,7 @@ async function postMortalidad() {
   if (!+v('mo-cantidad') || +v('mo-cantidad') < 1) { toast('⚠️', 'La cantidad debe ser al menos 1', '', 't-warn'); return; }
 
   const payload = {
-    id_ciclo:       { id: +v('mo-ciclo') },
+    id_ciclo:       { id_ciclo: +v('mo-ciclo') },
     id_galpon:      { id_galpon: +v('mo-galpon') },
     id_tipo_muerte: { id_tipo_muerte: +v('mo-tipo-muerte') },
     fecha_de_muerte: v('mo-fecha'),
@@ -2128,7 +2509,7 @@ async function prepareEditMortalidad(id) {
 
   // Llenar selects con valor actual preseleccionado
   document.getElementById('emo-ciclo').innerHTML = S.ciclos.map(c =>
-      `<option value="${c.id}" ${c.id === m.id_ciclo?.id ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+      `<option value="${c.id_ciclo}" ${c.id_ciclo === m.id_ciclo?.id_ciclo ? 'selected' : ''}>${c.nombre_ciclo || `Ciclo ${c.id_ciclo}`}</option>`
   ).join('');
   document.getElementById('emo-galpon').innerHTML = S.galpones.map(g =>
       `<option value="${g.id_galpon}" ${g.id_galpon === m.id_galpon?.id_galpon ? 'selected' : ''}>${g.nombre}</option>`
@@ -2148,7 +2529,7 @@ async function updateMortalidad() {
   if (!+cantidad || +cantidad < 1) { toast('⚠️', 'La cantidad debe ser al menos 1', '', 't-warn'); return; }
 
   const payload = {
-    id_ciclo:        { id: +v('emo-ciclo') },
+    id_ciclo:        { id_ciclo: +v('emo-ciclo') },
     id_galpon:       { id_galpon: +v('emo-galpon') },
     id_tipo_muerte:  { id_tipo_muerte: +v('emo-tipo-muerte') },
     fecha_de_muerte: fecha,
@@ -2237,7 +2618,7 @@ async function prepareEditAdmAlimento(id) {
 
   const selC = document.getElementById('eaa-ciclo');
   selC.innerHTML = S.ciclos.map(c =>
-      `<option value="${c.id}" ${c.id === r.id_ciclo ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+      `<option value="${c.id_ciclo}" ${c.id_ciclo === r.id_ciclo ? 'selected' : ''}>${c.nombre_ciclo || `Ciclo ${c.id_ciclo}`}</option>`
   ).join('');
 
   openModal('modal-editar-adm-alimento');
@@ -2371,7 +2752,7 @@ async function prepareEditAdmMed(id) {
   // Llenar select de Ciclos
   const selC = document.getElementById('eam-ciclo');
   selC.innerHTML = S.ciclos.map(c =>
-      `<option value="${c.id}" ${c.id === r.id_ciclo ? 'selected' : ''}>${c.nombreCiclo || `Ciclo ${c.id}`}</option>`
+      `<option value="${c.id_ciclo}" ${c.id_ciclo === r.id_ciclo ? 'selected' : ''}>${c.nombre_ciclo || `Ciclo ${c.id_ciclo}`}</option>`
   ).join('');
 
   openModal('modal-editar-adm-med');
@@ -2500,29 +2881,43 @@ function postUnidad() {
 
 // ─── REPORTE PDF ──────────────────────────────────────────
 async function generarReportePDF() {
+  if (!isAdmin()) { toast('❌', 'Acceso denegado', 'Solo el administrador puede generar reportes', 't-warn'); return; }
   const btn = document.querySelector('[onclick="generarReportePDF()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
 
   try {
     const { jsPDF } = window.jspdf;
-    const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const W    = doc.internal.pageSize.getWidth();
-    const hoy  = new Date().toISOString().split('T')[0];
+    const doc   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W     = doc.internal.pageSize.getWidth();
+    const hoy   = new Date().toISOString().split('T')[0];
     const fecha = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
     let y = 15;
 
-    // Cargar datos necesarios
-    const [mort, stockAlim, stockMed, vinculos, admiAlim, admiMed] = await Promise.all([
-      tryGet('/mortalidad',             'mortalidad'),
-      tryGet('/stock-alimento',         'stockAlim'),
-      tryGet('/stock-medicamento',      'stockMed'),
-      tryGet('/galpon-ciclo-produccion','vinculos'),
-      tryGet('/admi-alimento',          'admiAlimento'),
-      tryGet('/admi-medicamento',       'admiMedicamento'),
+    // ── Cargar datos ──
+    const [mort, stockAlim, stockMed, admiAlim, admiMed, ingAlim, ingMed] = await Promise.all([
+      tryGet('/mortalidad',          'mortalidad'),
+      tryGet('/stock-alimento',      'stockAlim'),
+      tryGet('/stock-medicamento',   'stockMed'),
+      tryGet('/admi-alimento',       'admiAlimento'),
+      tryGet('/admi-medicamento',    'admiMedicamento'),
+      tryGet('/ing-alimento',        'ingAlimento'),
+      tryGet('/ing-medicamento',     'ingMedicamento'),
     ]);
 
-    const galpones = S.galpones || [];
-    const ciclos   = S.ciclos   || [];
+    const galpones = S.galpones    || [];
+    const ciclos   = S.ciclos      || [];
+    const vinculos = S.vinculos    || [];
+    const tiposAlim = S.tiposAlimento || [];
+
+    const fmt  = n => (+n || 0).toLocaleString('es-CO');
+    const fmtP = n => '$' + (+n || 0).toLocaleString('es-CO');
+
+    const ciclosActivos    = ciclos.filter(c => { const f = toDateStr(c.fecha_fin); return !f || f >= hoy; });
+    const ciclosFinalizados = ciclos.filter(c => { const f = toDateStr(c.fecha_fin); return f && f < hoy; });
+    const galponDeCiclo    = (cid) => {
+      const vins = vinculos.filter(v => v.id_ciclo?.id_ciclo === cid);
+      return [...new Set(vins.map(v => v.id_galpon?.nombre).filter(Boolean))].join(', ') || '—';
+    };
 
     // ── Encabezado ──
     doc.setFillColor(34, 197, 94);
@@ -2535,141 +2930,383 @@ async function generarReportePDF() {
     doc.setTextColor(0, 0, 0);
     y = 30;
 
-    const seccion = (titulo) => {
+    const newPage = () => { doc.addPage(); y = 15; };
+    const checkY  = (need = 40) => { if (y + need > 275) newPage(); };
+
+    const seccion = (titulo, r, g, b) => {
+      checkY(12);
       doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-      doc.setFillColor(240, 240, 240);
+      doc.setFillColor(r ?? 34, g ?? 197, b ?? 94);
       doc.rect(14, y - 4, W - 28, 7, 'F');
+      doc.setTextColor(255, 255, 255);
       doc.text(titulo, 16, y);
+      doc.setTextColor(0, 0, 0);
       y += 6;
     };
 
-    // ── Resumen ──
-    seccion('Resumen General');
-    const ciclosActivos = ciclos.filter(c => {
-      const vins = vinculos.filter(v => v.id_ciclo?.id === c.id);
-      return vins.some(v => !v.fecha_fin || v.fecha_fin >= hoy);
-    });
-    const totalMuertos = mort.reduce((a, m) => a + (+m.muertos || 0), 0);
+    const tabla = (head, body, hColor, foot) => {
+      checkY(20);
+      doc.autoTable({
+        startY: y, margin: { left: 14, right: 14 },
+        head: [head], body, foot: foot ? [foot] : undefined,
+        theme: 'striped',
+        headStyles: { fillColor: hColor, textColor: 255 },
+        footStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    };
 
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Indicador', 'Valor']],
-      body: [
-        ['Galpones registrados',  galpones.length],
-        ['Ciclos activos',        ciclosActivos.length],
-        ['Tipos de alimento',     (S.tiposAlimento || []).length],
-        ['Tipos de medicamento',  (S.tiposMed || []).length],
-        ['Total bajas registradas', totalMuertos + ' aves'],
+    // ════════════════════════════════════════
+    // 1. RESUMEN GENERAL
+    // ════════════════════════════════════════
+    seccion('1. Resumen General');
+    const totalMuertos     = mort.reduce((a, m) => a + (+m.muertos || 0), 0);
+    const totalPerdidaMort = mort.reduce((a, m) => {
+      const ciclo = ciclos.find(c => c.id_ciclo === m.id_ciclo?.id_ciclo);
+      return a + ((+m.muertos || 0) * (+ciclo?.valor_pollo || 0));
+    }, 0);
+    const totalInvAlim     = ingAlim.reduce((a, r) => a + (+r.valor_total || 0), 0);
+    const totalInvMed      = ingMed.reduce((a, r) => a + (+r.valor_total || 0), 0);
+    const totalConsAlim    = admiAlim.reduce((a, r) => a + (+r.cantidad_utilizada || 0), 0);
+    const totalConsMed     = admiMed.reduce((a, r) => a + (+r.cantidad_utilizada || 0), 0);
+    const totalInvPollos   = ciclos.reduce((a, c) => {
+      const cant = +c.cantidad_pollos || 0;
+      const val  = +c.valor_pollo     || 0;
+      return a + (cant * val);
+    }, 0);
+    const totalPollosActivos = ciclosActivos.reduce((a, c) => a + (+c.cantidad_pollos || 0), 0);
+
+    tabla(
+      ['Indicador', 'Valor'],
+      [
+        ['Galpones registrados',            galpones.length],
+        ['Ciclos activos',                  ciclosActivos.length],
+        ['Ciclos finalizados',              ciclosFinalizados.length],
+        ['Aves en producción (activos)',    fmt(totalPollosActivos) + ' pollos'],
+        ['Tipos de alimento',               tiposAlim.length],
+        ['Tipos de medicamento',            (S.tiposMed || []).length],
+        ['Total bajas registradas',         fmt(totalMuertos) + ' aves'],
+        ['Total alimento consumido',        fmt(totalConsAlim) + ' kg'],
+        ['Total medicamento aplicado',      fmt(totalConsMed) + ' und'],
+        ['Inversión total en pollos',            fmtP(totalInvPollos)],
+        ['Inversión total en alimentos',         fmtP(totalInvAlim)],
+        ['Inversión total en medicamentos',      fmtP(totalInvMed)],
+        ['Inversión total general',              fmtP(totalInvPollos + totalInvAlim + totalInvMed)],
+        ['Pérdida aprox. por mortalidad',          fmtP(totalPerdidaMort)],
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [34, 197, 94], textColor: 255 },
-      styles: { fontSize: 9 },
-    });
-    y = doc.lastAutoTable.finalY + 8;
+      [34, 197, 94]
+    );
 
-    // ── Galpones ──
-    seccion('Galpones');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Nombre', 'Capacidad (aves)', 'Metros²']],
-      body: galpones.map(g => [g.nombre, (+g.capacidad || 0).toLocaleString(), g.metros_cuadrados ?? '—']),
-      theme: 'striped',
-      headStyles: { fillColor: [34, 197, 94], textColor: 255 },
-      styles: { fontSize: 9 },
-    });
-    y = doc.lastAutoTable.finalY + 8;
+    // ════════════════════════════════════════
+    // 2. GALPONES Y CICLOS
+    // ════════════════════════════════════════
+    seccion('2. Galpones');
+    tabla(
+      ['Nombre', 'Capacidad (aves)', 'Metros²'],
+      galpones.map(g => [g.nombre, fmt(g.capacidad), g.metros_cuadrados ?? '—']),
+      [34, 197, 94]
+    );
 
-    // ── Stock de Alimentos ──
-    if (y > 230) { doc.addPage(); y = 15; }
-    seccion('Stock de Alimentos');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Alimento', 'Stock actual (kg)']],
-      body: stockAlim.map(s => [
-        s.id_tipo_alimento?.nombre_alimento || s.id_tipo_alimento?.nombre || '—',
-        (+s.cantidad).toLocaleString()
+    seccion('3. Ciclos Activos', 34, 197, 94);
+    tabla(
+      ['Ciclo', 'Galpón', 'Inicio', 'Fin', 'Pollos', 'Valor/Pollo', 'Inversión Pollos'],
+      ciclosActivos.map(c => {
+        const cant = +c.cantidad_pollos || 0;
+        const val  = +c.valor_pollo     || 0;
+        return [
+          c.nombre_ciclo || `Ciclo ${c.id_ciclo}`,
+          galponDeCiclo(c.id_ciclo),
+          toDateStr(c.fecha_inicio) || '—',
+          toDateStr(c.fecha_fin)    || 'En curso',
+          cant ? fmt(cant) : '—',
+          val  ? fmtP(val) : '—',
+          cant && val ? fmtP(cant * val) : '—',
+        ];
+      }),
+      [34, 197, 94]
+    );
+
+    seccion('4. Ciclos Finalizados', 100, 100, 100);
+    // Pre-calcular bajas por ciclo para la pérdida
+    const bajasPorCicloFin = {};
+    mort.forEach(m => {
+      const cid = m.id_ciclo?.id_ciclo;
+      if (cid) bajasPorCicloFin[cid] = (bajasPorCicloFin[cid] || 0) + (+m.muertos || 0);
+    });
+    tabla(
+      ['Ciclo', 'Galpón', 'Inicio', 'Fin', 'Pollos', 'Valor/Pollo', 'Inversión Pollos', 'Pérdida Mortalidad'],
+      ciclosFinalizados.map(c => {
+        const cant    = +c.cantidad_pollos || 0;
+        const val     = +c.valor_pollo     || 0;
+        const bajas   = bajasPorCicloFin[c.id_ciclo] || 0;
+        const perdida = bajas * val;
+        return [
+          c.nombre_ciclo || `Ciclo ${c.id_ciclo}`,
+          galponDeCiclo(c.id_ciclo),
+          toDateStr(c.fecha_inicio) || '—',
+          toDateStr(c.fecha_fin)    || '—',
+          cant ? fmt(cant) : '—',
+          val  ? fmtP(val) : '—',
+          cant && val ? fmtP(cant * val) : '—',
+          perdida ? fmtP(perdida) : '—',
+        ];
+      }),
+      [100, 100, 100]
+    );
+
+    // ════════════════════════════════════════
+    // COSTO ACUMULADO POR CICLO
+    // ════════════════════════════════════════
+    seccion('5. Costo Acumulado por Ciclo', 34, 139, 34);
+
+    // Precio promedio por tipo de alimento y medicamento
+    const precAlimPdf = {};
+    ingAlim.forEach(r => {
+      const k = r.id_tipo_alimento?.id_tipo_alimento;
+      if (!k) return;
+      if (!precAlimPdf[k]) precAlimPdf[k] = { val: 0, cant: 0 };
+      precAlimPdf[k].val  += +r.valor_total || 0;
+      precAlimPdf[k].cant += +r.cantidad    || 0;
+    });
+    const precMedPdf = {};
+    ingMed.forEach(r => {
+      const k = r.id_tipo_medicamento?.id_tipo_medicamento;
+      if (!k) return;
+      if (!precMedPdf[k]) precMedPdf[k] = { val: 0, cant: 0 };
+      precMedPdf[k].val  += +r.valor_total || 0;
+      precMedPdf[k].cant += +r.cantidad    || 0;
+    });
+
+    const costoPorCiclo = ciclos.map(c => {
+      const invPollos = (+c.cantidad_pollos || 0) * (+c.valor_pollo || 0);
+      const costoAlim = admiAlim
+        .filter(r => r.id_ciclo?.id_ciclo === c.id_ciclo)
+        .reduce((a, r) => {
+          const k = r.id_tipo_alimento?.id_tipo_alimento;
+          const avg = k && precAlimPdf[k]?.cant > 0 ? precAlimPdf[k].val / precAlimPdf[k].cant : 0;
+          return a + (+r.cantidad_utilizada || 0) * avg;
+        }, 0);
+      const costoMed = admiMed
+        .filter(r => r.id_ciclo?.id_ciclo === c.id_ciclo)
+        .reduce((a, r) => {
+          const k = r.id_tipo_medicamento?.id_tipo_medicamento;
+          const avg = k && precMedPdf[k]?.cant > 0 ? precMedPdf[k].val / precMedPdf[k].cant : 0;
+          return a + (+r.cantidad_utilizada_medi || 0) * avg;
+        }, 0);
+      const total = invPollos + costoAlim + costoMed;
+      const estado = !toDateStr(c.fecha_fin) || toDateStr(c.fecha_fin) >= hoy ? 'Activo' : 'Finalizado';
+      return [c.nombre_ciclo || `Ciclo ${c.id_ciclo}`, estado, invPollos ? fmtP(invPollos) : '—', fmtP(costoAlim), fmtP(costoMed), fmtP(total)];
+    });
+    const totalAcum = costoPorCiclo.reduce((a, r) => a + (+r[5].replace(/\D/g,'') || 0), 0);
+    tabla(
+      ['Ciclo', 'Estado', 'Inv. Pollos', 'Alimento', 'Medicamentos', 'Total'],
+      costoPorCiclo,
+      [34, 139, 34]
+    );
+
+    // ════════════════════════════════════════
+    // ALERTAS DE VENCIMIENTO
+    // ════════════════════════════════════════
+    seccion('6. Alertas de Vencimiento', 220, 100, 0);
+    const hoy30pdf = new Date(); hoy30pdf.setDate(hoy30pdf.getDate() + 30);
+    const hoy30pdfStr = hoy30pdf.toISOString().split('T')[0];
+    const vencRows = [];
+    ingAlim.forEach(r => {
+      const fv = toDateStr(r.fecha_vencimiento);
+      if (!fv || fv > hoy30pdfStr) return;
+      const dias = Math.round((new Date(fv) - new Date(hoy)) / 86400000);
+      vencRows.push([r.id_tipo_alimento?.nombre_alimento || '—', 'Alimento', fv, dias < 0 ? 'VENCIDO' : `${dias} días`, fmt(r.cantidad) + ' kg']);
+    });
+    ingMed.forEach(r => {
+      const fv = toDateStr(r.fecha_vencimiento);
+      if (!fv || fv > hoy30pdfStr) return;
+      const dias = Math.round((new Date(fv) - new Date(hoy)) / 86400000);
+      vencRows.push([r.id_tipo_medicamento?.nombre || '—', 'Medicamento', fv, dias < 0 ? 'VENCIDO' : `${dias} días`, fmt(r.cantidad)]);
+    });
+    if (vencRows.length) {
+      tabla(['Producto', 'Tipo', 'Vencimiento', 'Estado', 'Cantidad'], vencRows, [220, 100, 0]);
+    } else {
+      checkY(10);
+      doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(100);
+      doc.text('Sin productos próximos a vencer en los próximos 30 días.', 16, y);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(0);
+      y += 10;
+    }
+
+    // ════════════════════════════════════════
+    // 3. INVENTARIO Y STOCK (renumerado)
+    // ════════════════════════════════════════
+    seccion('7. Stock de Alimentos', 234, 179, 8);
+    const tiposMedCache = S.tiposMed || [];
+    tabla(
+      ['Tipo de Alimento', 'Categoría', 'Stock actual (kg)'],
+      stockAlim.map(s => {
+        const nombre = s.id_tipo_alimento?.nombre_alimento || '—';
+        const tipo   = tiposAlim.find(t => t.nombre_alimento === nombre);
+        return [nombre, tipo?.categoria || '—', fmt(s.cantidad)];
+      }),
+      [234, 179, 8]
+    );
+
+    seccion('8. Stock de Medicamentos', 59, 130, 246);
+    tabla(
+      ['Medicamento', 'Categoría', 'Stock', 'Unidad'],
+      stockMed.map(s => {
+        const nombre = s.id_tipo_medicamento?.nombre || '—';
+        const tipo   = tiposMedCache.find(t => t.nombre === nombre);
+        return [nombre, tipo?.categoria || s.id_tipo_medicamento?.categoria || '—', fmt(s.cantidadActual), tipo?.unidad || s.id_tipo_medicamento?.unidad || '—'];
+      }),
+      [59, 130, 246]
+    );
+
+    // ════════════════════════════════════════
+    // 4. COSTOS — INVERSIONES EN INVENTARIO
+    // ════════════════════════════════════════
+    seccion('9. Inversión en Alimentos (Ingresos al Inventario)', 180, 120, 0);
+    const invAlimPorTipo = {};
+    ingAlim.forEach(r => {
+      const k = r.id_tipo_alimento?.nombre_alimento || '—';
+      if (!invAlimPorTipo[k]) invAlimPorTipo[k] = { kg: 0, valor: 0 };
+      invAlimPorTipo[k].kg    += +r.cantidad    || 0;
+      invAlimPorTipo[k].valor += +r.valor_total || 0;
+    });
+    tabla(
+      ['Tipo de Alimento', 'Categoría', 'Total kg ingresado', 'Valor Total'],
+      Object.entries(invAlimPorTipo).map(([nombre, d]) => {
+        const tipo = tiposAlim.find(t => t.nombre_alimento === nombre);
+        return [nombre, tipo?.categoria || '—', fmt(d.kg) + ' kg', fmtP(d.valor)];
+      }),
+      [180, 120, 0],
+      ['TOTAL', '', fmt(ingAlim.reduce((a,r)=>a+(+r.cantidad||0),0)) + ' kg', fmtP(totalInvAlim)]
+    );
+
+    seccion('10. Inversión en Medicamentos (Ingresos al Inventario)', 59, 100, 200);
+    const invMedPorTipo = {};
+    ingMed.forEach(r => {
+      const k = r.id_tipo_medicamento?.nombre || '—';
+      if (!invMedPorTipo[k]) invMedPorTipo[k] = { cant: 0, valor: 0 };
+      invMedPorTipo[k].cant  += +r.cantidad    || 0;
+      invMedPorTipo[k].valor += +r.valor_total || 0;
+    });
+    tabla(
+      ['Medicamento', 'Cantidad ingresada', 'Valor Total'],
+      Object.entries(invMedPorTipo).map(([nombre, d]) => [nombre, fmt(d.cant) + ' und', fmtP(d.valor)]),
+      [59, 100, 200],
+      ['TOTAL', fmt(ingMed.reduce((a,r)=>a+(+r.cantidad||0),0)) + ' und', fmtP(totalInvMed)]
+    );
+
+    // ════════════════════════════════════════
+    // 5. COSTOS — CONSUMO POR CICLO
+    // ════════════════════════════════════════
+    seccion('11. Consumo de Alimento por Ciclo', 180, 120, 0);
+    const consAlimCiclo = {};
+    admiAlim.forEach(r => {
+      const k = r.nombre_ciclo || `Ciclo ${r.id_ciclo}`;
+      if (!consAlimCiclo[k]) consAlimCiclo[k] = { galpon: r.nombre_galpon || '—', kg: 0 };
+      consAlimCiclo[k].kg += +r.cantidad_utilizada || 0;
+    });
+    tabla(
+      ['Ciclo', 'Galpón', 'Total Consumido', 'Estado'],
+      Object.entries(consAlimCiclo).map(([ciclo, d]) => {
+        const c = ciclos.find(x => (x.nombre_ciclo || `Ciclo ${x.id_ciclo}`) === ciclo);
+        const fin = c ? toDateStr(c.fecha_fin) : null;
+        return [ciclo, d.galpon, fmt(d.kg) + ' kg', !fin || fin >= hoy ? 'Activo' : 'Finalizado'];
+      }),
+      [180, 120, 0],
+      ['TOTAL', '', fmt(totalConsAlim) + ' kg', '']
+    );
+
+    seccion('12. Consumo de Medicamentos por Ciclo', 59, 100, 200);
+    const consMedCiclo = {};
+    admiMed.forEach(r => {
+      const k = r.nombre_ciclo || `Ciclo ${r.id_ciclo}`;
+      if (!consMedCiclo[k]) consMedCiclo[k] = { galpon: r.nombre_galpon || '—', cant: 0 };
+      consMedCiclo[k].cant += +r.cantidad_utilizada || 0;
+    });
+    tabla(
+      ['Ciclo', 'Galpón', 'Total Aplicado', 'Estado'],
+      Object.entries(consMedCiclo).map(([ciclo, d]) => {
+        const c = ciclos.find(x => (x.nombre_ciclo || `Ciclo ${x.id_ciclo}`) === ciclo);
+        const fin = c ? toDateStr(c.fecha_fin) : null;
+        return [ciclo, d.galpon, fmt(d.cant) + ' und', !fin || fin >= hoy ? 'Activo' : 'Finalizado'];
+      }),
+      [59, 100, 200],
+      ['TOTAL', '', fmt(totalConsMed) + ' und', '']
+    );
+
+    // ════════════════════════════════════════
+    // 6. ADMINISTRACIÓN DETALLADA
+    // ════════════════════════════════════════
+    seccion('13. Detalle Administración de Alimentos', 234, 179, 8);
+    tabla(
+      ['Fecha', 'Galpón', 'Ciclo', 'Alimento', 'Cantidad'],
+      admiAlim.map(a => [
+        toDateStr(a.fecha_alimentacion) || '—',
+        a.nombre_galpon   || '—',
+        a.nombre_ciclo    || '—',
+        a.nombre_alimento || '—',
+        fmt(a.cantidad_utilizada) + ' kg',
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [234, 179, 8], textColor: 255 },
-      styles: { fontSize: 9 },
-    });
-    y = doc.lastAutoTable.finalY + 8;
+      [234, 179, 8]
+    );
 
-    // ── Stock de Medicamentos ──
-    if (y > 230) { doc.addPage(); y = 15; }
-    seccion('Stock de Medicamentos');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Medicamento', 'Categoría', 'Stock', 'Unidad']],
-      body: stockMed.map(s => [
-        s.id_tipo_medicamento?.nombre || '—',
-        s.id_tipo_medicamento?.categoria || '—',
-        (+s.cantidadActual).toLocaleString(),
-        s.id_tipo_medicamento?.unidad || '—'
+    seccion('14. Detalle Administración de Medicamentos', 59, 130, 246);
+    tabla(
+      ['Fecha', 'Galpón', 'Ciclo', 'Medicamento', 'Cantidad'],
+      admiMed.map(a => [
+        toDateStr(a.fecha_medicacion) || '—',
+        a.nombre_galpon || '—',
+        a.nombre_ciclo  || '—',
+        a.nombre_med    || '—',
+        fmt(a.cantidad_utilizada) + ' und',
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-      styles: { fontSize: 9 },
-    });
-    y = doc.lastAutoTable.finalY + 8;
+      [59, 130, 246]
+    );
 
-    // ── Administración de Alimentos ──
-    if (y > 200) { doc.addPage(); y = 15; }
-    seccion('Administración de Alimentos');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Fecha', 'Galpón', 'Ciclo', 'Alimento', 'Cantidad (kg)']],
-      body: admiAlim.map(a => [
-        a.fecha_alimentacion || '—',
-        a.nombre_galpon       || '—',
-        a.nombre_ciclo        || '—',
-        a.nombre_alimento     || '—',
-        (+a.cantidad_utilizada).toLocaleString()
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [234, 179, 8], textColor: 255 },
-      styles: { fontSize: 9 },
+    // ════════════════════════════════════════
+    // 7. MORTALIDAD
+    // ════════════════════════════════════════
+    seccion('15. Registro de Mortalidades', 239, 68, 68);
+    const mortPorCiclo = {};
+    mort.forEach(m => {
+      const cid  = m.id_ciclo?.id_ciclo;
+      const k    = m.id_ciclo?.nombre_ciclo || `Ciclo ${cid || '?'}`;
+      if (!mortPorCiclo[k]) mortPorCiclo[k] = { bajas: 0, cid };
+      mortPorCiclo[k].bajas += +m.muertos || 0;
     });
-    y = doc.lastAutoTable.finalY + 8;
 
-    // ── Administración de Medicamentos ──
-    if (y > 200) { doc.addPage(); y = 15; }
-    seccion('Administración de Medicamentos');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Fecha', 'Galpón', 'Ciclo', 'Medicamento', 'Cantidad']],
-      body: admiMed.map(a => [
-        a.fecha_medicacion || '—',
-        a.nombre_galpon    || '—',
-        a.nombre_ciclo     || '—',
-        a.nombre_med       || '—',
-        (+a.cantidad_utilizada).toLocaleString()
-      ]),
-      theme: 'striped',
-      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-      styles: { fontSize: 9 },
+    const mortResumen = Object.entries(mortPorCiclo).map(([nombre, d]) => {
+      const ciclo      = ciclos.find(c => c.id_ciclo === d.cid);
+      const valorPollo = +ciclo?.valor_pollo || 0;
+      const pollos     = +ciclo?.cantidad_pollos || 0;
+      const perdida    = d.bajas * valorPollo;
+      const tasa       = pollos > 0 ? (d.bajas / pollos * 100).toFixed(1) + '%' : '—';
+      return [nombre, pollos ? fmt(pollos) : '—', fmt(d.bajas) + ' aves', tasa, valorPollo ? fmtP(valorPollo) : '—', perdida ? fmtP(perdida) : '—'];
     });
-    y = doc.lastAutoTable.finalY + 8;
 
-    // ── Mortalidades ──
-    if (y > 200) { doc.addPage(); y = 15; }
-    seccion('Registro de Mortalidades');
-    doc.autoTable({
-      startY: y, margin: { left: 14, right: 14 },
-      head: [['Fecha', 'Galpón', 'Ciclo', 'Causa', 'Bajas']],
-      body: mort.map(m => [
-        m.fecha_de_muerte || '—',
-        m.id_galpon?.nombre || '—',
-        m.id_ciclo?.nombreCiclo || m.id_ciclo?.nombre_ciclo || '—',
+    tabla(
+      ['Ciclo', 'Pollos iniciales', 'Bajas', 'Tasa %', 'Valor/Pollo', 'Pérdida Aprox.'],
+      mortResumen,
+      [239, 68, 68],
+      ['TOTAL', fmt(totalPollosActivos), fmt(totalMuertos) + ' aves', '', '', fmtP(totalPerdidaMort)]
+    );
+
+    checkY(20);
+    tabla(
+      ['Fecha', 'Galpón', 'Ciclo', 'Tipo de Muerte', 'Causa', 'Bajas'],
+      mort.map(m => [
+        toDateStr(m.fecha_de_muerte) || '—',
+        m.id_galpon?.nombre          || '—',
+        m.id_ciclo?.nombre_ciclo     || '—',
+        m.id_tipo_muerte?.nombre     || '—',
         m.causa || '—',
-        m.muertos
+        fmt(m.muertos),
       ]),
-      theme: 'striped',
-      headStyles: { fillColor: [239, 68, 68], textColor: 255 },
-      styles: { fontSize: 9 },
-    });
+      [239, 68, 68]
+    );
 
-    // ── Pie de página en todas las páginas ──
+    // ── Pie de página ──
     const pages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pages; i++) {
       doc.setPage(i);

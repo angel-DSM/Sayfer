@@ -2,6 +2,7 @@ package com.sayfer.sayfer.dto;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @NoArgsConstructor
@@ -15,6 +16,8 @@ public class CicloProduccionDTO {
     private String     nombre_ciclo;
     private LocalDate  fecha_inicio;
     private LocalDate  fecha_fin;
-    private Integer    duracion;      // calculado en el backend (días)
-    private GalponDTO  id_galpon;     // FK → Galpon (incluye id_galpon + nombre)
+    private Integer    duracion;
+    private GalponDTO  id_galpon;
+    private Integer    cantidad_pollos;
+    private BigDecimal valor_pollo;
 }

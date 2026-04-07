@@ -594,6 +594,8 @@ textarea { resize: vertical; min-height: 80px; }
   color: var(--red);
 }
 .alert-error svg { stroke: var(--red); }
+.alert-danger { background: linear-gradient(135deg, var(--red-lt), rgba(192,57,43,0.08)); border-left: 4px solid var(--red); border: 1px solid rgba(192,57,43,0.2); border-left-width: 4px; color: var(--red); }
+.alert-danger svg { stroke: var(--red); }
 .alert-success {
   background: linear-gradient(135deg, var(--accent-lt), rgba(61, 122, 61, 0.08));
   border-left-color: var(--accent);
@@ -715,7 +717,7 @@ textarea { resize: vertical; min-height: 80px; }
   content: attr(data-val);
   position: absolute; top: -28px; left: 50%;
   transform: translateX(-50%);
-  background: var(--text); color: #fff;
+  background: #1a1a1a; color: #fff;
   padding: 4px 8px; border-radius: 6px;
   font-size: 11px; white-space: nowrap;
   font-family: var(--mono);

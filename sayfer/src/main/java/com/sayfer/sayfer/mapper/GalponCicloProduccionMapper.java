@@ -23,7 +23,6 @@ public class GalponCicloProduccionMapper extends GenericMapper<GalponCicloProduc
         if (entity == null) return null;
         return GalponCicloProduccionDTO.builder()
                 .id_galpon_ciclo_produccion(entity.getId_galpon_ciclo_produccion())
-                .nombreCiclo(entity.getNombreCiclo())
                 .fecha_inicio(entity.getFecha_inicio())
                 .fecha_fin(entity.getFecha_fin())
                 .id_galpon(galponMapper.toDTO(entity.getId_galpon()))
@@ -44,7 +43,7 @@ public class GalponCicloProduccionMapper extends GenericMapper<GalponCicloProduc
         CicloProduccion ciclo = null;
         if (dto.getId_ciclo() != null) {
             ciclo = new CicloProduccion();
-            ciclo.setId(dto.getId_ciclo().getId());
+            ciclo.setId(dto.getId_ciclo().getId_ciclo());
         }
 
         return GalponCicloProduccion.builder()

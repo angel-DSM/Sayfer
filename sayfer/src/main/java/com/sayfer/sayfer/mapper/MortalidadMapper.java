@@ -22,8 +22,8 @@ public class MortalidadMapper extends GenericMapper<Mortalidad, MortalidadDTO> {
         CicloProduccionDTO cicloDTO = null;
         if (entity.getId_ciclo() != null)
             cicloDTO = CicloProduccionDTO.builder()
-                    .id(entity.getId_ciclo().getId())
-                    .nombreCiclo(entity.getId_ciclo().getNombreCiclo())
+                    .id_ciclo(entity.getId_ciclo().getId())
+                    .nombre_ciclo(entity.getId_ciclo().getNombre_ciclo())
                     .build();
 
         GalponDTO galponDTO = null;
@@ -57,7 +57,7 @@ public class MortalidadMapper extends GenericMapper<Mortalidad, MortalidadDTO> {
         if (dto == null) return null;
 
         CicloProduccion ciclo = dto.getId_ciclo() != null
-                ? em.getReference(CicloProduccion.class, dto.getId_ciclo().getId()) : null;
+                ? em.getReference(CicloProduccion.class, dto.getId_ciclo().getId_ciclo()) : null;
         Galpon galpon = dto.getId_galpon() != null
                 ? em.getReference(Galpon.class, dto.getId_galpon().getId_galpon()) : null;
         TipoMuerte tipo = dto.getId_tipo_muerte() != null

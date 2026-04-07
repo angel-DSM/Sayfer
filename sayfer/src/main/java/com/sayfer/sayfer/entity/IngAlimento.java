@@ -31,7 +31,7 @@ public class IngAlimento {
     @Column(name = "valor_unitario", precision = 10, scale = 2)
     private BigDecimal valor_unitario;
 
-    @Column(name = "fecha_vencimiento", precision = 10, scale = 2)
+    @Column(name = "fecha_vencimiento")
     private LocalDate fecha_vencimiento;
 
     @Column(name = "valor_total", precision = 10, scale = 2)

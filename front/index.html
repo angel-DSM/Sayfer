@@ -284,7 +284,7 @@
           <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
           Actualizar
         </button>
-        <button class="btn btn-primary btn-sm" onclick="generarReportePDF()">
+        <button class="btn btn-primary btn-sm" id="btn-reporte-pdf" onclick="generarReportePDF()" style="display:none">
           <svg width="12" height="12" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           Reporte PDF
         </button>
@@ -303,6 +303,11 @@
         <div class="stat-icon-wrap"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
         <div class="stat-val" id="s-ciclos">—</div>
         <div class="stat-lbl">Ciclos activos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap green"><svg viewBox="0 0 24 24"><path d="M20 7c0 4.4-8 13-8 13S4 11.4 4 7a8 8 0 0116 0z"/><circle cx="12" cy="7" r="2.5"/></svg></div>
+        <div class="stat-val" id="s-pollos-activos">—</div>
+        <div class="stat-lbl">Aves en producción</div>
       </div>
       <div class="stat-card">
         <div class="stat-icon-wrap red"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
@@ -356,7 +361,7 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre Ciclo</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Nombre Ciclo</th><th>Galpón</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Estado</th></tr></thead>
           <tbody id="dash-ciclos-tbody">
           <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
@@ -394,7 +399,7 @@
         <div class="card-header"><span class="card-title">Tipos de Alimento</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre Comercial</th><th>Categoría</th><th>Descripción</th><th>Acciones</th></tr></thead>
             <tbody id="tipos-alimento-tbody">
             <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -516,9 +521,20 @@
       </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Nombre</th><th>Galpón</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>ID</th><th>Nombre</th><th>Galpón</th><th>Fecha Inicio</th><th>Fecha Fin</th><th>Duración</th><th>Pollos</th><th>Estado</th><th>Acciones</th></tr></thead>
           <tbody id="ciclos-tbody">
-          <tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Costo acumulado — ciclos activos</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Ciclo</th><th>Galpón</th><th>Inv. Pollos</th><th>Alimento</th><th>Medicamentos</th><th>Total acumulado</th></tr></thead>
+          <tbody id="costos-ciclos-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px"><span class="spin"></span> Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -550,23 +566,67 @@
         <div class="stat-val" id="m-galpones">—</div>
         <div class="stat-lbl">Galpones afectados</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-icon-wrap red"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="stat-val" id="m-tasa">—</div>
+        <div class="stat-lbl">Tasa de mortalidad</div>
+      </div>
     </div>
-    <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Tasa de mortalidad por ciclo</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Ciclo</th><th>Pollos iniciales</th><th>Bajas totales</th><th>Tasa</th></tr></thead>
+          <tbody id="tasa-ciclo-tbody">
+            <tr><td colspan="4" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Tipos de Muerte registrados</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody id="tipos-muerte-tbody">
+          <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
       <div class="card">
-        <div class="card-header"><span class="card-title">Tipos de Muerte registrados</span></div>
-        <div class="tbl-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
-            <tbody id="tipos-muerte-tbody">
-            <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
-            </tbody>
-          </table>
+        <div class="card-header"><span class="card-title">Por tipo de causa</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-causas" style="height:130px"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Bajas por tipo de causa</span></div>
+        <div class="card-header"><span class="card-title">Por mes</span></div>
         <div class="card-body">
-          <div class="chart-bars" id="chart-causas" style="height:130px"></div>
+          <div class="chart-bars" id="chart-mes" style="height:130px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Por ciclo de producción</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-ciclo" style="height:130px"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Bajas por tipo — ciclos activos</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-mort-ciclo-agrupado" style="height:140px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Bajas por tipo — ciclos finalizados</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-mort-ciclo-fin" style="height:140px"></div>
         </div>
       </div>
     </div>
@@ -637,6 +697,20 @@
       <div><div class="page-title">Administración de Alimento</div><div class="page-sub">tabla: admi_alimento — consumo por galpón/ciclo</div></div>
       <button class="btn btn-primary" onclick="openModal('modal-adm-alimento')">+ Registrar Administración</button>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Consumo por tipo — ciclos activos (kg)</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-consumo-ciclo" style="height:140px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Consumo por tipo — ciclos finalizados (kg)</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-consumo-ciclo-fin" style="height:140px"></div>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Registros de Alimentación</span>
         <div class="search-wrap">
@@ -660,6 +734,20 @@
     <div class="page-header">
       <div><div class="page-title">Administración de Medicamentos</div><div class="page-sub">tabla: admi_medicamento</div></div>
       <button class="btn btn-primary" onclick="openModal('modal-adm-med')">+ Registrar Aplicación</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Consumo por tipo — ciclos activos</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-consumo-med" style="height:140px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Consumo por tipo — ciclos finalizados</span></div>
+        <div class="card-body">
+          <div class="chart-bars" id="chart-consumo-med-fin" style="height:140px"></div>
+        </div>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Registros de Medicación</span>
@@ -949,58 +1037,6 @@
   </div>
 </div>
 
-<!-- Ciclo -->
-<!-- Editar Ciclo -->
-<div class="modal-overlay" id="modal-editar-ciclo">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Editar Ciclo de Producción</div>
-      <button class="modal-close" onclick="closeModal('modal-editar-ciclo')">✕</button>
-    </div>
-    <div class="form-grid">
-      <input type="hidden" id="ec-id">
-
-      <div class="fgroup full">
-        <label>Nombre del Ciclo</label>
-        <input id="ec-nombre" type="text">
-      </div>
-
-      <div class="fgroup">
-        <label>Fecha Inicio</label>
-        <input id="ec-inicio" type="date">
-      </div>
-      <div class="fgroup">
-        <label>Fecha Fin (opcional)</label>
-        <input id="ec-fin" type="date">
-      </div>
-
-      <!-- Lista de galpones con checkboxes -->
-      <div class="fgroup full">
-        <label>Galpones vinculados</label>
-        <div id="ec-galpon-lista" style="
-          max-height:160px;overflow-y:auto;
-          border:1px solid var(--border);border-radius:8px;
-          background:var(--bg2);padding:8px 12px;
-          display:flex;flex-direction:column;gap:8px;">
-        </div>
-        <div id="ec-galpon-preview" style="margin-top:6px;font-size:12px;color:var(--text3)">
-          Ningún galpón seleccionado
-        </div>
-      </div>
-
-      <div id="ec-error-msg" class="fgroup full" style="display:none">
-        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px"
-             id="ec-error-text"></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal('modal-editar-ciclo')">Cancelar</button>
-      <button class="btn btn-primary" onclick="updateCiclo()">Guardar Cambios</button>
-      <button class="btn" style="background:var(--red);color:white;border:none;cursor:pointer"
-              onclick="deleteCiclo()">🗑️ Eliminar</button>
-    </div>
-  </div>
-</div>
 
 <!-- ── NUEVO CICLO ── -->
 <div class="modal-overlay" id="modal-ciclo">
@@ -1021,6 +1057,14 @@
       <div class="fgroup">
         <label>Fecha Fin (opcional)</label>
         <input id="c-fin" type="date">
+      </div>
+      <div class="fgroup">
+        <label>Cantidad de pollos</label>
+        <input id="c-pollos" type="number" min="1" placeholder="Ej: 5000">
+      </div>
+      <div class="fgroup">
+        <label>Valor por pollo (COP)</label>
+        <input id="c-valor-pollo" type="number" min="0" placeholder="Ej: 3500">
       </div>
 
       <!-- Selección múltiple de galpones -->
@@ -1054,6 +1098,8 @@
       <div class="fgroup full"><label>Nombre del Ciclo</label><input id="ec-nombre" type="text"></div>
       <div class="fgroup"><label>Fecha Inicio</label><input id="ec-inicio" type="date"></div>
       <div class="fgroup"><label>Fecha Fin (opcional)</label><input id="ec-fin" type="date"></div>
+      <div class="fgroup"><label>Cantidad de pollos</label><input id="ec-pollos" type="number" min="1" placeholder="Ej: 5000"></div>
+      <div class="fgroup"><label>Valor por pollo (COP)</label><input id="ec-valor-pollo" type="number" min="0" placeholder="Ej: 3500"></div>
       <div class="fgroup full">
         <label>Galpones</label>
         <div id="ec-galpon-lista" style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg2);padding:8px 12px;display:flex;flex-direction:column;gap:8px;"></div>
@@ -1076,7 +1122,16 @@
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Tipo de Alimento</div><button class="modal-close" onclick="closeModal('modal-tipo-alimento')">✕</button></div>
     <div class="form-grid">
-      <div class="fgroup full"><label>Nombre</label><input id="ta-nombre" type="text" placeholder="Concentrado Iniciador"></div>
+      <div class="fgroup full"><label>Nombre Comercial</label><input id="ta-nombre" type="text" placeholder="Ej: Purina Iniciador Pro"></div>
+      <div class="fgroup full"><label>Categoría</label>
+        <select id="ta-categoria">
+          <option value="">— Seleccionar —</option>
+          <option value="preiniciador">Preiniciador</option>
+          <option value="iniciador">Iniciador</option>
+          <option value="engorde">Engorde</option>
+          <option value="finalizacion">Finalización</option>
+        </select>
+      </div>
       <div class="fgroup full"><label>Descripción</label><textarea id="ta-desc" rows="2" placeholder="Para pollos de 0-21 días..."></textarea></div>
       <div id="ta-error-msg" class="fgroup full" style="display:none">
         <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="ta-error-text"></div>
@@ -1098,6 +1153,34 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('modal-editar-tipos-alimento')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Editar Tipo de Alimento (individual) -->
+<div class="modal-overlay" id="modal-editar-tipo-alimento">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Tipo de Alimento</div><button class="modal-close" onclick="closeModal('modal-editar-tipo-alimento')">✕</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="eta-id">
+      <div class="fgroup full"><label>Nombre Comercial</label><input id="eta-nombre" type="text" placeholder="Ej: Purina Iniciador Pro"></div>
+      <div class="fgroup full"><label>Categoría</label>
+        <select id="eta-categoria">
+          <option value="">— Seleccionar —</option>
+          <option value="preiniciador">Preiniciador</option>
+          <option value="iniciador">Iniciador</option>
+          <option value="engorde">Engorde</option>
+          <option value="finalizacion">Finalización</option>
+        </select>
+      </div>
+      <div class="fgroup full"><label>Descripción</label><textarea id="eta-desc" rows="2" placeholder="Para pollos de 0-21 días..."></textarea></div>
+      <div id="eta-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="eta-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-editar-tipo-alimento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateTipoAlimento()">Actualizar</button>
     </div>
   </div>
 </div>
