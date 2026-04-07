@@ -693,7 +693,7 @@ async function loadDashboard() {
     </div>`;
   }).join('') || '<div style="color:var(--text3)">Sin datos de stock</div>';
 
-  const low = data.some(m => +m.cantidadActual < 5);
+  const low = data1.some(m => +m.cantidadActual < 5);
   // Alertas automáticas
   const alertas = [];
   stock.forEach(s => {
@@ -2496,6 +2496,154 @@ function postUnidad() {
   doPost('/unidad-medida',
       { nombre: v('un-nombre') },
       'modal-unidad', loadUnidades, 'Unidad');
+}
+
+// ─── REPORTE PDF ──────────────────────────────────────────
+async function generarReportePDF() {
+  const btn = document.querySelector('[onclick="generarReportePDF()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc  = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W    = doc.internal.pageSize.getWidth();
+    const hoy  = new Date().toISOString().split('T')[0];
+    const fecha = new Date().toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' });
+    let y = 15;
+
+    // Cargar datos necesarios
+    const [mort, stockAlim, stockMed, vinculos] = await Promise.all([
+      tryGet('/mortalidad',             'mortalidad'),
+      tryGet('/stock-alimento',         'stockAlim'),
+      tryGet('/stock-medicamento',      'stockMed'),
+      tryGet('/galpon-ciclo-produccion','vinculos'),
+    ]);
+
+    const galpones = S.galpones || [];
+    const ciclos   = S.ciclos   || [];
+
+    // ── Encabezado ──
+    doc.setFillColor(34, 197, 94);
+    doc.rect(0, 0, W, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text('SAYFER — Reporte General', 14, 13);
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+    doc.text('Gestión Avícola · ' + fecha, W - 14, 13, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    y = 30;
+
+    const seccion = (titulo) => {
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.setFillColor(240, 240, 240);
+      doc.rect(14, y - 4, W - 28, 7, 'F');
+      doc.text(titulo, 16, y);
+      y += 6;
+    };
+
+    // ── Resumen ──
+    seccion('Resumen General');
+    const ciclosActivos = ciclos.filter(c => {
+      const vins = vinculos.filter(v => v.id_ciclo?.id === c.id);
+      return vins.some(v => !v.fecha_fin || v.fecha_fin >= hoy);
+    });
+    const totalMuertos = mort.reduce((a, m) => a + (+m.muertos || 0), 0);
+
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Indicador', 'Valor']],
+      body: [
+        ['Galpones registrados',  galpones.length],
+        ['Ciclos activos',        ciclosActivos.length],
+        ['Tipos de alimento',     (S.tiposAlimento || []).length],
+        ['Tipos de medicamento',  (S.tiposMed || []).length],
+        ['Total bajas registradas', totalMuertos + ' aves'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [34, 197, 94], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Galpones ──
+    seccion('Galpones');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Nombre', 'Capacidad (aves)', 'Metros²']],
+      body: galpones.map(g => [g.nombre, (+g.capacidad || 0).toLocaleString(), g.metros_cuadrados ?? '—']),
+      theme: 'striped',
+      headStyles: { fillColor: [34, 197, 94], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Stock de Alimentos ──
+    if (y > 230) { doc.addPage(); y = 15; }
+    seccion('Stock de Alimentos');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Alimento', 'Stock actual (kg)']],
+      body: stockAlim.map(s => [
+        s.id_tipo_alimento?.nombre_alimento || s.id_tipo_alimento?.nombre || '—',
+        (+s.cantidad).toLocaleString()
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [234, 179, 8], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Stock de Medicamentos ──
+    if (y > 230) { doc.addPage(); y = 15; }
+    seccion('Stock de Medicamentos');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Medicamento', 'Categoría', 'Stock', 'Unidad']],
+      body: stockMed.map(s => [
+        s.id_tipo_medicamento?.nombre || '—',
+        s.id_tipo_medicamento?.categoria || '—',
+        (+s.cantidadActual).toLocaleString(),
+        s.id_tipo_medicamento?.unidad || '—'
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // ── Mortalidades ──
+    if (y > 200) { doc.addPage(); y = 15; }
+    seccion('Registro de Mortalidades');
+    doc.autoTable({
+      startY: y, margin: { left: 14, right: 14 },
+      head: [['Fecha', 'Galpón', 'Ciclo', 'Causa', 'Bajas']],
+      body: mort.map(m => [
+        m.fecha_de_muerte || '—',
+        m.id_galpon?.nombre || '—',
+        m.id_ciclo?.nombreCiclo || m.id_ciclo?.nombre_ciclo || '—',
+        m.causa || '—',
+        m.muertos
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [239, 68, 68], textColor: 255 },
+      styles: { fontSize: 9 },
+    });
+
+    // ── Pie de página en todas las páginas ──
+    const pages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8); doc.setTextColor(150);
+      doc.text(`Página ${i} de ${pages}  ·  Generado por SAYFER`, W / 2, 290, { align: 'center' });
+    }
+
+    doc.save('reporte-sayfer-' + hoy + '.pdf');
+    toast('✅', 'Reporte generado', 'El PDF se descargó correctamente');
+  } catch (e) {
+    toast('❌', 'Error al generar PDF', e.message, 't-warn');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reporte PDF'; }
+  }
 }
 
 // ─── INICIALIZACIÓN ───────────────────────────────────────
