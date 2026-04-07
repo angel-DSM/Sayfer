@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @AllArgsConstructor
@@ -39,4 +40,10 @@ public class Usuario {
 
     @Column(name = "estado", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     private Boolean estado = true;
+
+    @Column(name = "reset_token", length = 6)
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
 }

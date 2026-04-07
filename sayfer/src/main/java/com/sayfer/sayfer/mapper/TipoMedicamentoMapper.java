@@ -16,6 +16,10 @@ public class TipoMedicamentoMapper extends GenericMapper<TipoMedicamento, TipoMe
                 .id_tipo_medicamento(entity.getId_tipo_medicamento())
                 .nombre(entity.getNombre())
                 .descripcion_medi(entity.getDescripcion_medi())
+                .categoria(entity.getCategoria())
+                .unidad(entity.getUnidad())
+                .periodo_retiro(entity.getPeriodo_retiro())
+                .condiciones_almacenamiento(entity.getCondiciones_almacenamiento())
                 .build();
     }
 
@@ -28,6 +32,10 @@ public class TipoMedicamentoMapper extends GenericMapper<TipoMedicamento, TipoMe
                 .id_tipo_medicamento(dto.getId_tipo_medicamento())
                 .nombre(dto.getNombre())
                 .descripcion_medi(dto.getDescripcion_medi())
+                .categoria(dto.getCategoria())
+                .unidad(dto.getUnidad())
+                .periodo_retiro(dto.getPeriodo_retiro())
+                .condiciones_almacenamiento(dto.getCondiciones_almacenamiento())
                 .build();
     }
 }

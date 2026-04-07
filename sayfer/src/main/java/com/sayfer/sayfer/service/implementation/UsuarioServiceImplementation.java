@@ -6,22 +6,27 @@ import com.sayfer.sayfer.exeption.NoDataFoundException;
 import com.sayfer.sayfer.exeption.ValidateException;
 import com.sayfer.sayfer.mapper.UsuarioMapper;
 import com.sayfer.sayfer.repository.UsuarioRepository;
+import com.sayfer.sayfer.service.EmailService;
 import com.sayfer.sayfer.service.UsuarioService;
 import com.sayfer.sayfer.validator.UsuarioValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
 public class UsuarioServiceImplementation implements UsuarioService {
     private final UsuarioRepository repository;
     private final UsuarioMapper mapper;
+    private final EmailService emailService;
 
-    public UsuarioServiceImplementation(UsuarioRepository repository, UsuarioMapper mapper) {
+    public UsuarioServiceImplementation(UsuarioRepository repository, UsuarioMapper mapper, EmailService emailService) {
         this.repository = repository;
         this.mapper = mapper;
+        this.emailService = emailService;
     }
 
     @Override
@@ -87,5 +92,42 @@ public class UsuarioServiceImplementation implements UsuarioService {
             throw new ValidateException("Usuario inactivo");
         }
         return mapper.toDTO(usuario);
+    }
+
+    @Override
+    public void solicitarRecuperacion(String correo) {
+        // No revelar si el correo existe o no (seguridad)
+        repository.findByCorreo(correo).ifPresent(usuario -> {
+            if (Boolean.TRUE.equals(usuario.getEstado())) {
+                String codigo = String.format("%06d", new Random().nextInt(1000000));
+                usuario.setResetToken(codigo);
+                usuario.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10));
+                repository.save(usuario);
+                emailService.enviarCodigoRecuperacion(correo, codigo);
+            }
+        });
+    }
+
+    @Override
+    public void resetPassword(String correo, String codigo, String nuevaPassword) {
+        Usuario usuario = repository.findByCorreo(correo)
+                .orElseThrow(() -> new ValidateException("Datos incorrectos"));
+
+        if (usuario.getResetToken() == null || !usuario.getResetToken().equals(codigo)) {
+            throw new ValidateException("Código inválido");
+        }
+
+        if (usuario.getResetTokenExpiry() == null || LocalDateTime.now().isAfter(usuario.getResetTokenExpiry())) {
+            throw new ValidateException("El código ha expirado, solicita uno nuevo");
+        }
+
+        if (nuevaPassword == null || nuevaPassword.length() < 6) {
+            throw new ValidateException("La contraseña debe tener al menos 6 caracteres");
+        }
+
+        usuario.setPassword(nuevaPassword);
+        usuario.setResetToken(null);
+        usuario.setResetTokenExpiry(null);
+        repository.save(usuario);
     }
 }

@@ -70,4 +70,20 @@ public class UsuarioController {
         return new ApiResponse<>(resultado, true, "Login exitoso")
                 .createResponse();
     }
+
+    // POST /usuario/recuperar  -> envia codigo por email
+    @PostMapping("/recuperar")
+    public ResponseEntity<ApiResponse<Object>> solicitarRecuperacion(@RequestBody Map<String, String> req) {
+        service.solicitarRecuperacion(req.get("correo"));
+        return new ApiResponse<>(null, true, "Si el correo existe en el sistema, recibirás un código en breve")
+                .createResponse();
+    }
+
+    // POST /usuario/reset-password  -> valida codigo y cambia contraseña
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Object>> resetPassword(@RequestBody Map<String, String> req) {
+        service.resetPassword(req.get("correo"), req.get("codigo"), req.get("nuevaPassword"));
+        return new ApiResponse<>(null, true, "Contraseña actualizada exitosamente")
+                .createResponse();
+    }
 }

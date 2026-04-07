@@ -65,11 +65,11 @@
 
       <div class="fgroup" style="margin-bottom:14px">
         <label>Correo</label>
-        <input id="login-user" type="email" placeholder="admin@sayfer.com">
+        <input id="login-user" type="email" placeholder="example@mail.com" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
       <div class="fgroup" style="margin-bottom:22px">
         <label>Contraseña</label>
-        <input id="login-pass" type="password" placeholder="••••••">
+        <input id="login-pass" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
 
       <div id="login-error" class="login-error-msg" style="display:none">
@@ -104,13 +104,36 @@
         </div>
       </div>
 
-      <!-- paso 2: confirmación -->
-      <div id="recovery-step-2" style="display:none;text-align:center">
+      <!-- paso 2: ingresar código y nueva contraseña -->
+      <div id="recovery-step-2" style="display:none">
+        <h2 class="login-welcome">Ingresa el código</h2>
+        <p class="login-welcome-sub">Revisa tu correo y escribe el código de 6 dígitos que te enviamos.</p>
+        <div class="fgroup" style="margin-bottom:16px">
+          <label>Código de verificación</label>
+          <input id="recovery-code" type="text" maxlength="6" placeholder="000000" style="letter-spacing:6px;font-size:20px;text-align:center">
+        </div>
+        <div class="fgroup" style="margin-bottom:16px">
+          <label>Nueva contraseña</label>
+          <input id="recovery-new-password" type="password" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="fgroup" style="margin-bottom:22px">
+          <label>Confirmar contraseña</label>
+          <input id="recovery-confirm-password" type="password" placeholder="Repite la contraseña">
+        </div>
+        <div id="recovery-error" style="color:#e53e3e;font-size:13px;margin-bottom:12px;display:none"></div>
+        <button class="btn-login" onclick="confirmRecovery()">Cambiar contraseña</button>
+        <div style="text-align:center;margin-top:18px">
+          <button class="login-link" onclick="showRecovery(false)">← Volver al inicio de sesión</button>
+        </div>
+      </div>
+
+      <!-- paso 3: confirmación -->
+      <div id="recovery-step-3" style="display:none;text-align:center">
         <div class="recovery-check">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
         </div>
-        <h2 class="login-welcome" style="text-align:center">Correo enviado</h2>
-        <p class="login-welcome-sub" style="text-align:center">Si el correo existe en el sistema, recibirás las instrucciones en breve. Revisa tu bandeja de entrada y spam.</p>
+        <h2 class="login-welcome" style="text-align:center">¡Listo!</h2>
+        <p class="login-welcome-sub" style="text-align:center">Tu contraseña fue actualizada correctamente.</p>
         <button class="btn-login" onclick="showRecovery(false)" style="margin-top:8px">Volver al inicio de sesión</button>
       </div>
 
@@ -400,8 +423,7 @@
         <div class="page-sub">stock_medicamento · tipo_medicamento · ing_medicamento</div>
       </div>
       <div class="flex">
-        <button class="btn btn-secondary" data-admin-only onclick="openModal('modal-tipo-med')">+ Tipo Medicamento</button>
-        <button class="btn btn-secondary" data-admin-only onclick="openModal('modal-editar-tipos-med')">🗑️ Eliminar Medicamento</button>
+        <button class="btn btn-secondary" data-admin-only onclick="openNuevoTipoMed()">+ Tipo Medicamento</button>
         <button class="btn btn-primary" onclick="openModal('modal-ing-med')">+ Registrar Ingreso</button>
       </div>
     </div>
@@ -421,7 +443,7 @@
         <div class="card-header"><span class="card-title">Tipos de Medicamento</span></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Descripcion</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Nombre comercial</th><th>Categoría</th><th>Unidad</th><th>Retiro (días)</th><th>Acciones</th></tr></thead>
             <tbody id="tipos-med-tbody">
             <tr><td colspan="3" style="text-align:center;color:var(--text3)"><span class="spin"></span></td></tr>
             </tbody>
@@ -1121,6 +1143,49 @@
   </div>
 </div>
 
+<!-- Editar Tipo Medicamento -->
+<div class="modal-overlay" id="modal-edit-tipo-med">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Editar Tipo de Medicamento</div><button class="modal-close" onclick="closeModal('modal-edit-tipo-med')">✕</button></div>
+    <div class="form-grid">
+      <input type="hidden" id="etm-id">
+      <div class="fgroup full"><label>Nombre comercial</label><input id="etm-nombre" type="text" placeholder="Ej: Amoxicilina"></div>
+      <div class="fgroup"><label>Categoría</label>
+        <select id="etm-categoria">
+          <option value="">— Seleccionar —</option>
+          <option value="Vacuna">Vacuna</option>
+          <option value="Antibiótico">Antibiótico</option>
+          <option value="Vitamina / Electrolito">Vitamina / Electrolito</option>
+          <option value="Anticoccidial">Anticoccidial</option>
+          <option value="Probiótico">Probiótico</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fgroup"><label>Unidad de medida</label>
+        <select id="etm-unidad">
+          <option value="">— Seleccionar —</option>
+          <option value="mL">Mililitro</option>
+          <option value="L">Litro</option>
+          <option value="g">Gramo</option>
+          <option value="kg">Kilogramo</option>
+          <option value="Dosis">Dosis</option>
+          <option value="Frasco">Frasco</option>
+        </select>
+      </div>
+      <div class="fgroup"><label>Período de retiro (días)</label><input id="etm-retiro" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"></div>
+      <div class="fgroup full"><label>Condiciones de almacenamiento</label><textarea id="etm-condiciones" rows="2" placeholder="Ej: Mantener refrigerado entre 2°C y 8°C"></textarea></div>
+      <div id="etm-error-msg" class="fgroup full" style="display:none">
+        <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="etm-error-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:var(--red);color:white;margin-right:auto" onclick="deleteTipoMedDesdeEdit()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-tipo-med')">Cancelar</button>
+      <button class="btn btn-primary" onclick="updateTipoMed()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Editar Ingreso Medicamento -->
 <div class="modal-overlay" id="modal-editar-ing-med">
   <div class="modal">
@@ -1149,8 +1214,31 @@
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Nuevo Tipo de Medicamento</div><button class="modal-close" onclick="closeModal('modal-tipo-med')">✕</button></div>
     <div class="form-grid">
-      <div class="fgroup full"><label>Nombre</label><input id="tm-nombre" type="text" placeholder="Vacuna Newcastle"></div>
-      <div class="fgroup full"><label>Descripción</label><textarea id="tm-desc" rows="2"></textarea></div>
+      <div class="fgroup full"><label>Nombre comercial</label><input id="tm-nombre" type="text" placeholder="Ej: Amoxicilina"></div>
+      <div class="fgroup"><label>Categoría</label>
+        <select id="tm-categoria">
+          <option value="">— Seleccionar —</option>
+          <option value="Vacuna">Vacuna</option>
+          <option value="Antibiótico">Antibiótico</option>
+          <option value="Vitamina / Electrolito">Vitamina / Electrolito</option>
+          <option value="Anticoccidial">Anticoccidial</option>
+          <option value="Probiótico">Probiótico</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="fgroup"><label>Unidad de medida</label>
+        <select id="tm-unidad">
+          <option value="">— Seleccionar —</option>
+          <option value="mL">Mililitro</option>
+          <option value="L">Litro</option>
+          <option value="g">Gramo</option>
+          <option value="kg">Kilogramo</option>
+          <option value="Dosis">Dosis</option>
+          <option value="Frasco">Frasco</option>
+        </select>
+      </div>
+      <div class="fgroup"><label>Período de retiro (días)</label><input id="tm-retiro" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="0"></div>
+      <div class="fgroup full"><label>Condiciones de almacenamiento</label><textarea id="tm-condiciones" rows="2" placeholder="Ej: Mantener refrigerado entre 2°C y 8°C"></textarea></div>
       <div id="tm-error-msg" class="fgroup full" style="display:none">
         <div style="background:#ffeaea;border:1px solid var(--red);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px" id="tm-error-text"></div>
       </div>

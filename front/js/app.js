@@ -262,21 +262,89 @@ function showRecovery(show) {
   document.getElementById('recovery-wrap').style.display = show ? '' : 'none';
   document.querySelector('.login-form-wrap:not(#recovery-wrap)').style.display = show ? 'none' : '';
   if (!show) {
-    // resetear pasos al volver
     document.getElementById('recovery-step-1').style.display = '';
     document.getElementById('recovery-step-2').style.display = 'none';
+    document.getElementById('recovery-step-3').style.display = 'none';
     document.getElementById('recovery-email').value = '';
+    document.getElementById('recovery-code').value = '';
+    document.getElementById('recovery-new-password').value = '';
+    document.getElementById('recovery-confirm-password').value = '';
+    document.getElementById('recovery-error').style.display = 'none';
   }
 }
 
-function sendRecovery() {
+async function sendRecovery() {
   const email = document.getElementById('recovery-email').value.trim();
   if (!email) {
     document.getElementById('recovery-email').focus();
     return;
   }
+  const btn = document.querySelector('#recovery-step-1 .btn-login');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try {
+    await fetch('http://localhost:8090/api/usuario/recuperar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo: email })
+    });
+  } catch (_) { /* mostrar paso 2 igualmente para no revelar si el correo existe */ }
+  btn.disabled = false;
+  btn.textContent = 'Enviar instrucciones';
   document.getElementById('recovery-step-1').style.display = 'none';
   document.getElementById('recovery-step-2').style.display = '';
+}
+
+async function confirmRecovery() {
+  const correo = document.getElementById('recovery-email').value.trim();
+  const codigo = document.getElementById('recovery-code').value.trim();
+  const nuevaPassword = document.getElementById('recovery-new-password').value;
+  const confirmar = document.getElementById('recovery-confirm-password').value;
+  const errorEl = document.getElementById('recovery-error');
+
+  errorEl.style.display = 'none';
+
+  if (!codigo || codigo.length !== 6) {
+    errorEl.textContent = 'Ingresa el código de 6 dígitos';
+    errorEl.style.display = '';
+    return;
+  }
+  if (!nuevaPassword || nuevaPassword.length < 6) {
+    errorEl.textContent = 'La contraseña debe tener al menos 6 caracteres';
+    errorEl.style.display = '';
+    return;
+  }
+  if (nuevaPassword !== confirmar) {
+    errorEl.textContent = 'Las contraseñas no coinciden';
+    errorEl.style.display = '';
+    return;
+  }
+
+  const btn = document.querySelector('#recovery-step-2 .btn-login');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
+  try {
+    const res = await fetch('http://localhost:8090/api/usuario/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo, codigo, nuevaPassword })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('recovery-step-2').style.display = 'none';
+      document.getElementById('recovery-step-3').style.display = '';
+    } else {
+      errorEl.textContent = data.message || 'Error al cambiar la contraseña';
+      errorEl.style.display = '';
+    }
+  } catch (_) {
+    errorEl.textContent = 'Error de conexión. Intenta de nuevo.';
+    errorEl.style.display = '';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Cambiar contraseña';
 }
 
 // ─── NAVEGACIÓN ENTRE TABS ────────────────────────────────
@@ -1018,10 +1086,11 @@ async function loadTiposMed() {
   S.tiposMed = await tryGet('/tipo-medicamento', 'tiposMed');
   document.getElementById('tipos-med-tbody').innerHTML = S.tiposMed.map(t => `
     <tr>
-      <td class="mono">${t.id_tipo_medicamento}</td>
-      <td>${t.nombre}</td>
-      <td style="color:var(--text3)">${t.descripcion_medi || '—'}</td>
-      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditTipoMed(${t.id_tipo_medicamento},'${(t.nombre||'').replace(/'/g,"\\'")}')" title="Editar">✏️</button>` : '—'}</td>
+      <td>${t.nombre || '—'}</td>
+      <td style="color:var(--text3)">${t.categoria || '—'}</td>
+      <td>${t.unidad || '—'}</td>
+      <td>${t.periodo_retiro != null ? t.periodo_retiro + ' días' : '—'}</td>
+      <td>${isAdmin() ? `<button class="btn-icon" onclick="prepareEditTipoMed(${t.id_tipo_medicamento})" title="Editar">✏️</button>` : '—'}</td>
     </tr>`).join('');
 }
 
@@ -1620,6 +1689,16 @@ async function deleteIngAlimento() {
   }
 }
 
+function openNuevoTipoMed() {
+  document.getElementById('tm-nombre').value = '';
+  document.getElementById('tm-categoria').value = '';
+  document.getElementById('tm-unidad').value = '';
+  document.getElementById('tm-retiro').value = '';
+  document.getElementById('tm-condiciones').value = '';
+  document.getElementById('tm-error-msg').style.display = 'none';
+  openModal('modal-tipo-med');
+}
+
 async function postTipoMed() {
   const errBox = document.getElementById('tm-error-msg');
   const errText = document.getElementById('tm-error-text');
@@ -1627,7 +1706,7 @@ async function postTipoMed() {
 
   const nombre = v('tm-nombre')?.trim();
   if (!nombre) {
-    if (errBox && errText) { errText.textContent = 'El nombre es obligatorio.'; errBox.style.display = ''; }
+    if (errBox && errText) { errText.textContent = 'El nombre comercial es obligatorio.'; errBox.style.display = ''; }
     return;
   }
   const existe = S.tiposMed?.some(t => t.nombre?.toLowerCase() === nombre.toLowerCase());
@@ -1635,10 +1714,21 @@ async function postTipoMed() {
     if (errBox && errText) { errText.textContent = `Ya existe un tipo de medicamento con el nombre "${nombre}".`; errBox.style.display = ''; }
     return;
   }
+
+  const retiro  = v('tm-retiro');
+  const payload = {
+    nombre,
+    descripcion_medi:           '',
+    categoria:                  v('tm-categoria') || null,
+    unidad:                     v('tm-unidad') || null,
+    periodo_retiro:             retiro !== '' && +retiro >= 0 ? +retiro : null,
+    condiciones_almacenamiento: v('tm-condiciones')?.trim() || null
+  };
+
   try {
     const r = await fetch(S.apiBase + '/tipo-medicamento', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, descripcion_medi: v('tm-desc') })
+      body: JSON.stringify(payload)
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
@@ -1720,7 +1810,12 @@ async function loadEditarTiposMed() {
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg2)">
         <div style="flex:1">
           <div style="font-weight:600;font-size:14px;color:var(--text)">${t.nombre}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:4px">${t.descripcion_medi || 'Sin descripción'}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">
+            ${t.categoria ? `Categoría: ${t.categoria}` : ''}
+            ${t.unidad ? ` · Unidad: ${t.unidad.nombre}` : ''}
+            ${t.periodo_retiro != null ? ` · Retiro: ${t.periodo_retiro} días` : ''}
+            ${t.condiciones_almacenamiento ? `<br>${t.condiciones_almacenamiento}` : ''}
+          </div>
         </div>
         ${isAdmin() ? `<button class="btn btn-sm" onclick="deleteTipoMed(${t.id_tipo_medicamento},'${(t.nombre||'').replace(/'/g,"\\'")}');" style="background:var(--red);color:white;border:none;cursor:pointer;padding:6px 12px;border-radius:4px;font-size:12px">🗑️ Eliminar</button>` : ''}
       </div>
@@ -1730,12 +1825,65 @@ async function loadEditarTiposMed() {
   }
 }
 
-function prepareEditTipoMed(id, nombre) {
-  openModal('modal-editar-tipos-med');
-  loadEditarTiposMed();
+function prepareEditTipoMed(id) {
+  const t = S.tiposMed?.find(x => x.id_tipo_medicamento === id);
+  if (!t) return;
+  document.getElementById('etm-id').value         = t.id_tipo_medicamento;
+  document.getElementById('etm-nombre').value     = t.nombre || '';
+  document.getElementById('etm-categoria').value  = t.categoria || '';
+  document.getElementById('etm-unidad').value     = t.unidad || '';
+  document.getElementById('etm-retiro').value     = t.periodo_retiro ?? '';
+  document.getElementById('etm-condiciones').value = t.condiciones_almacenamiento || '';
+  document.getElementById('etm-error-msg').style.display = 'none';
+  openModal('modal-edit-tipo-med');
 }
 
-async function deleteTipoMed(id, nombre) {
+async function updateTipoMed() {
+  const errBox  = document.getElementById('etm-error-msg');
+  const errText = document.getElementById('etm-error-text');
+  errBox.style.display = 'none';
+
+  const nombre = document.getElementById('etm-nombre').value.trim();
+  if (!nombre) {
+    errText.textContent = 'El nombre comercial es obligatorio.';
+    errBox.style.display = '';
+    return;
+  }
+
+  const id     = document.getElementById('etm-id').value;
+  const retiro = document.getElementById('etm-retiro').value;
+  const payload = {
+    nombre,
+    descripcion_medi:           '',
+    categoria:                  document.getElementById('etm-categoria').value || null,
+    unidad:                     document.getElementById('etm-unidad').value || null,
+    periodo_retiro:             retiro !== '' && +retiro >= 0 ? +retiro : null,
+    condiciones_almacenamiento: document.getElementById('etm-condiciones').value.trim() || null
+  };
+
+  try {
+    const r = await fetch(S.apiBase + '/tipo-medicamento/' + id, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      errText.textContent = err.message || 'Error al guardar.';
+      errBox.style.display = '';
+      return;
+    }
+    toast('✅', 'Tipo de medicamento actualizado');
+    closeModal('modal-edit-tipo-med');
+    loadTiposMed();
+  } catch {
+    errText.textContent = 'No se pudo conectar con el servidor.';
+    errBox.style.display = '';
+  }
+}
+
+async function deleteTipoMedDesdeEdit() {
+  const id     = document.getElementById('etm-id').value;
+  const nombre = document.getElementById('etm-nombre').value;
   if (!confirm(`⚠️ ¿Eliminar el tipo de medicamento "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
   try {
     const r = await fetch(S.apiBase + '/tipo-medicamento/' + id, { method: 'DELETE' });
@@ -1744,8 +1892,9 @@ async function deleteTipoMed(id, nombre) {
       return;
     }
     toast('✅', 'Tipo de medicamento eliminado');
+    closeModal('modal-edit-tipo-med');
     await loadTiposMed();
-    await loadEditarTiposMed();
+    await loadStockMed();
   } catch {
     toast('❌', 'Error al eliminar', 'No se pudo conectar.', 't-error');
   }
